@@ -1,0 +1,1051 @@
+{
+  "chapter": 1,
+  "id": "ch01",
+  "title": "C# 程式設計",
+  "priority": "第一優先",
+  "examWeight": "非選擇題 80%，全程手寫 C#，不可查文件",
+  "color": "#e74c3c",
+  "sections": [
+    {
+      "id": "oop-pillars",
+      "title": "OOP 四大柱：封裝、繼承、多型、抽象",
+      "content": "OOP（物件導向程式設計）有四大核心概念，常縮寫為 APIE：Abstraction（抽象）、Polymorphism（多型）、Inheritance（繼承）、Encapsulation（封裝）。\n\n**封裝 (Encapsulation)**：將資料隱藏在類別內部，透過 public 屬性或方法提供有控制的存取介面。核心原則是「資料隱藏」：欄位宣告為 private，搭配 Property 的 getter/setter 控制讀寫，setter 中可加入驗證邏輯。封裝的目的是確保物件狀態一致性、降低耦合、提高可維護性。\n\n**繼承 (Inheritance)**：子類別（derived class）繼承父類別（base class）的屬性與方法，用 `:` 符號。C# **只支援單一繼承**（一個類別只能繼承一個父類），但可實作多個介面。子類建構子必須用 `base(...)` 明確呼叫父類建構子（父類沒有無參數建構子時）。`protected` 成員只有父類與子類可存取。\n\n**多型 (Polymorphism)**：同一個介面或方法名稱，因物件實際型別不同而有不同行為。C# 實現**執行期多型**（runtime polymorphism）：父類方法加 `virtual`，子類用 `override` 覆寫。透過父類型別的變數呼叫方法時，執行的是**實際物件型別**的版本（dynamic binding）。注意：如果子類用 `new` 關鍵字「隱藏」方法而非 `override`，就無法達成多型效果。\n\n**抽象 (Abstraction)**：用 `abstract` 宣告無法直接實例化的類別，或宣告沒有方法體的方法，強制所有具體子類必須實作。`abstract` 方法隱含 `virtual`，不需再加 `virtual`。抽象類別可以包含已實作的方法與欄位，這是與純介面的主要差異。abstract class 無法用 `new` 建立物件。",
+      "codeExample": "// OOP 四大柱完整示範\npublic abstract class Animal  // 抽象：不能直接 new Animal()\n{\n    private string _name;  // 封裝：private 欄位\n\n    // 封裝：Property 含驗證邏輯\n    public string Name\n    {\n        get => _name;\n        set => _name = string.IsNullOrWhiteSpace(value) ? \"Unknown\" : value;\n    }\n\n    public int Age { get; protected set; }  // protected set：子類可寫，外部唯讀\n\n    public Animal(string name, int age)\n    {\n        Name = name;\n        Age = age;\n    }\n\n    // 抽象方法：子類必須實作（隱含 virtual）\n    public abstract string MakeSound();\n\n    // virtual 方法：子類可選擇 override\n    public virtual string Describe()\n    {\n        return $\"{Name}（{Age} 歲）發出聲音：{MakeSound()}\";\n    }\n}\n\npublic class Dog : Animal  // 繼承\n{\n    public string Breed { get; set; }\n\n    // base(...) 呼叫父建構子\n    public Dog(string name, int age, string breed) : base(name, age)\n    {\n        Breed = breed;\n    }\n\n    public override string MakeSound() => \"汪汪！\";  // 多型：override\n\n    public override string Describe()\n    {\n        return base.Describe() + $\"（品種：{Breed}）\";  // base. 呼叫父版本\n    }\n}\n\npublic class Cat : Animal\n{\n    public Cat(string name, int age) : base(name, age) { }\n    public override string MakeSound() => \"喵～\";\n    // 不 override Describe()，使用父類版本\n}\n\n// 多型展示：父類型別持有子類實例\nList<Animal> animals = new List<Animal>\n{\n    new Dog(\"小黑\", 3, \"拉布拉多\"),\n    new Cat(\"咪咪\", 2)\n};\nforeach (Animal a in animals)  // a 的靜態型別是 Animal\n{\n    Console.WriteLine(a.Describe());  // 執行期呼叫各自的版本\n}",
+      "keyPoints": [
+        "abstract class 無法 new，必須透過子類實例化；abstract 方法無方法體，子類必須 override",
+        "virtual + override = 執行期多型（dynamic binding）；缺少 virtual 則子類的 new 關鍵字只是「隱藏」，無多型效果",
+        "繼承用 `:` 符號，C# 只支援單一繼承；父類建構子用 base(...) 呼叫",
+        "封裝：欄位 private + Property 控制存取；protected 成員只有父類和子類可存取",
+        "base.Method() 可在 override 方法內呼叫父類版本，避免重複邏輯"
+      ],
+      "exercises": [
+        {
+          "id": 1,
+          "type": "coding",
+          "question": "請手寫一個 Vehicle 抽象類別，包含：(1) string 屬性 Brand（封裝，帶有非空驗證）；(2) 抽象方法 string GetFuelType()；(3) virtual 方法 string Describe() 回傳「[Brand] 使用 [燃料]」。再寫 Car（汽油，4輪）和 Truck（柴油，貨車）兩個具體子類，Car 要 override Describe() 在末尾加上「(4輪轎車)」。",
+          "answer": "public abstract class Vehicle\n{\n    private string _brand;\n\n    public string Brand\n    {\n        get => _brand;\n        set => _brand = string.IsNullOrWhiteSpace(value)\n            ? throw new ArgumentException(\"Brand 不可為空\")\n            : value;\n    }\n\n    public Vehicle(string brand)\n    {\n        Brand = brand;\n    }\n\n    public abstract string GetFuelType();\n\n    public virtual string Describe()\n    {\n        return $\"{Brand} 使用 {GetFuelType()} 燃料\";\n    }\n}\n\npublic class Car : Vehicle\n{\n    public Car(string brand) : base(brand) { }\n\n    public override string GetFuelType() => \"汽油\";\n\n    public override string Describe()\n    {\n        return base.Describe() + \" (4輪轎車)\";\n    }\n}\n\npublic class Truck : Vehicle\n{\n    public Truck(string brand) : base(brand) { }\n\n    public override string GetFuelType() => \"柴油\";\n}",
+          "explanation": "重點：(1) abstract 方法無方法體、無 virtual 關鍵字；(2) 子類建構子需用 base(brand) 呼叫父建構子；(3) override Describe() 內用 base.Describe() 複用父類邏輯而非重寫。考試時注意 abstract class 本身也可以有已實作的方法（Describe）和建構子。"
+        },
+        {
+          "id": 2,
+          "type": "coding",
+          "question": "請手寫一個 BankAccount 類別，實作封裝原則：(1) private decimal _balance 欄位；(2) public decimal Balance { get; } 唯讀屬性；(3) 建構子接收 string owner 和初始金額（不可為負）；(4) Deposit(decimal amount) 方法（金額須為正）；(5) bool Withdraw(decimal amount) 方法（餘額不足回傳 false）。",
+          "answer": "public class BankAccount\n{\n    private decimal _balance;\n    private string _owner;\n\n    public decimal Balance => _balance;  // 唯讀屬性\n    public string Owner => _owner;\n\n    public BankAccount(string owner, decimal initialBalance)\n    {\n        if (string.IsNullOrWhiteSpace(owner))\n            throw new ArgumentException(\"帳戶持有人不可為空\");\n        if (initialBalance < 0)\n            throw new ArgumentException(\"初始金額不可為負數\");\n\n        _owner = owner;\n        _balance = initialBalance;\n    }\n\n    public void Deposit(decimal amount)\n    {\n        if (amount <= 0)\n            throw new ArgumentException(\"存款金額必須大於零\");\n        _balance += amount;\n    }\n\n    public bool Withdraw(decimal amount)\n    {\n        if (amount <= 0 || amount > _balance)\n            return false;\n        _balance -= amount;\n        return true;\n    }\n\n    public override string ToString()\n    {\n        return $\"帳戶：{_owner}，餘額：{_balance:C}\";\n    }\n}",
+          "explanation": "封裝重點：欄位 private，透過屬性或方法控制存取。Balance 用 `=>` expression-body 唯讀屬性，外部只能讀不能寫。建構子和方法中做輸入驗證（Guard Clause pattern），確保物件始終處於有效狀態。"
+        },
+        {
+          "id": 3,
+          "type": "coding",
+          "question": "請手寫 Shape 抽象類別（含抽象方法 double Area() 和 double Perimeter()），以及 Circle（半徑）和 Rectangle（長、寬）兩個子類。最後寫一段程式：建立含 3 個 Shape 的 List（至少 1 Circle、1 Rectangle），用 foreach 輸出每個的型別名稱、面積、周長，並找出面積最大的。",
+          "answer": "public abstract class Shape\n{\n    public abstract double Area();\n    public abstract double Perimeter();\n\n    public override string ToString()\n    {\n        return $\"{GetType().Name}: 面積={Area():F2}, 周長={Perimeter():F2}\";\n    }\n}\n\npublic class Circle : Shape\n{\n    public double Radius { get; }\n    public Circle(double radius) { Radius = radius; }\n\n    public override double Area() => Math.PI * Radius * Radius;\n    public override double Perimeter() => 2 * Math.PI * Radius;\n}\n\npublic class Rectangle : Shape\n{\n    public double Width { get; }\n    public double Height { get; }\n    public Rectangle(double width, double height)\n    {\n        Width = width;\n        Height = height;\n    }\n    public override double Area() => Width * Height;\n    public override double Perimeter() => 2 * (Width + Height);\n}\n\n// 使用程式\nList<Shape> shapes = new List<Shape>\n{\n    new Circle(5),\n    new Rectangle(4, 6),\n    new Circle(3)\n};\n\nforeach (Shape s in shapes)\n{\n    Console.WriteLine(s.ToString());\n}\n\nShape largest = shapes[0];\nforeach (Shape s in shapes)\n{\n    if (s.Area() > largest.Area())\n        largest = s;\n}\nConsole.WriteLine($\"最大面積：{largest}\");",
+          "explanation": "多型關鍵：List<Shape> 可以存放任何 Shape 的子類，foreach 中呼叫 s.Area() 會根據實際型別執行 Circle.Area() 或 Rectangle.Area()，這就是執行期多型。GetType().Name 可取得物件的實際型別名稱（\"Circle\" 或 \"Rectangle\"）。"
+        },
+        {
+          "id": 4,
+          "type": "coding",
+          "question": "請手寫 Employee 類別（string Name、decimal Salary、virtual decimal CalculatePay()），再寫 Manager 繼承 Employee，Manager 多一個 int _teamSize 私有欄位（透過屬性存取），CalculatePay() override 為底薪 + 團隊獎金（每人 1000 元），並 override ToString() 顯示姓名、薪資、團隊大小。",
+          "answer": "public class Employee\n{\n    public string Name { get; set; }\n    public decimal Salary { get; set; }\n\n    public Employee(string name, decimal salary)\n    {\n        Name = name;\n        Salary = salary;\n    }\n\n    public virtual decimal CalculatePay()\n    {\n        return Salary;\n    }\n\n    public override string ToString()\n    {\n        return $\"{Name}，薪資：{CalculatePay():C}\";\n    }\n}\n\npublic class Manager : Employee\n{\n    private int _teamSize;\n\n    public int TeamSize\n    {\n        get => _teamSize;\n        set => _teamSize = value < 0 ? 0 : value;\n    }\n\n    public Manager(string name, decimal salary, int teamSize)\n        : base(name, salary)  // 呼叫父建構子\n    {\n        TeamSize = teamSize;\n    }\n\n    public override decimal CalculatePay()\n    {\n        return base.CalculatePay() + (TeamSize * 1000m);  // base. 複用父邏輯\n    }\n\n    public override string ToString()\n    {\n        return $\"{Name}（主管），薪資：{CalculatePay():C}，團隊：{TeamSize} 人\";\n    }\n}",
+          "explanation": "重點：(1) base(name, salary) 呼叫父建構子，避免重複初始化邏輯；(2) override CalculatePay() 中用 base.CalculatePay() 取得父類計算結果再加上額外獎金；(3) 宣告 1000m 使用 decimal 字面值（避免浮點精度問題）。"
+        },
+        {
+          "id": 5,
+          "type": "coding",
+          "question": "請寫一個 Logger 類別，展示 sealed 方法的用途：Logger 有 virtual Log(string msg) 方法；FileLogger 繼承 Logger 並 override Log()，同時將 Log() 標記為 sealed；再嘗試寫 SpecialFileLogger 繼承 FileLogger，說明為什麼 override Log() 會造成編譯錯誤。",
+          "answer": "public class Logger\n{\n    public virtual void Log(string msg)\n    {\n        Console.WriteLine($\"[LOG] {msg}\");\n    }\n}\n\npublic class FileLogger : Logger\n{\n    private string _filePath;\n\n    public FileLogger(string filePath)\n    {\n        _filePath = filePath;\n    }\n\n    // sealed 阻止更下層的子類 override\n    public sealed override void Log(string msg)\n    {\n        Console.WriteLine($\"[FILE:{_filePath}] {msg}\");\n        // 實際實作：File.AppendAllText(_filePath, msg);\n    }\n}\n\npublic class SpecialFileLogger : FileLogger\n{\n    public SpecialFileLogger(string path) : base(path) { }\n\n    // 以下會造成 CS0239 編譯錯誤：\n    // public override void Log(string msg)  // 錯誤！Log 已被 sealed\n    // {\n    //     base.Log(msg);\n    // }\n\n    // 可以新增其他方法，但不能 override sealed 的 Log()\n    public void LogWithTimestamp(string msg)\n    {\n        Log($\"[{DateTime.Now:HH:mm:ss}] {msg}\");  // 呼叫繼承來的 sealed Log()\n    }\n}",
+          "explanation": "sealed 方法必須搭配 override 一起使用（先 override 再 sealed）。用途：防止繼承鏈的下層類別修改已確定的實作邏輯，常用在安全性或效能關鍵的方法。sealed class 則完全禁止被繼承（例如 string 類別）。"
+        },
+        {
+          "id": 6,
+          "type": "coding",
+          "question": "請用 protected 存取修飾子展示繼承中的資料保護：設計 GameCharacter 類別，有 protected int _hp 和 protected int _maxHp 欄位，public 的 HP 屬性（唯讀），以及 protected virtual TakeDamage(int dmg) 方法；Warrior 繼承並 override TakeDamage()，加上「護甲減傷 20%」邏輯。",
+          "answer": "public class GameCharacter\n{\n    protected int _hp;\n    protected int _maxHp;\n\n    public int HP => _hp;  // 外部唯讀\n    public string Name { get; protected set; }  // 子類可寫\n\n    public GameCharacter(string name, int maxHp)\n    {\n        Name = name;\n        _maxHp = maxHp;\n        _hp = maxHp;\n    }\n\n    protected virtual void TakeDamage(int dmg)\n    {\n        _hp = Math.Max(0, _hp - dmg);  // 不低於 0\n    }\n\n    public void Attack(GameCharacter target, int damage)\n    {\n        target.TakeDamage(damage);\n        Console.WriteLine($\"{Name} 攻擊 {target.Name}，造成 {damage} 傷害\");\n    }\n\n    public bool IsAlive => _hp > 0;\n}\n\npublic class Warrior : GameCharacter\n{\n    public int Armor { get; set; }\n\n    public Warrior(string name, int maxHp, int armor)\n        : base(name, maxHp)\n    {\n        Armor = armor;\n    }\n\n    protected override void TakeDamage(int dmg)\n    {\n        // 護甲減傷：護甲值越高，減傷越多（最多減 80%）\n        double reduction = Math.Min(0.8, Armor / 100.0);\n        int actualDmg = (int)(dmg * (1 - reduction));\n        base.TakeDamage(actualDmg);  // 呼叫父類扣血邏輯\n        Console.WriteLine($\"護甲減傷 {dmg - actualDmg} 點\");\n    }\n}",
+          "explanation": "protected 的存取範圍：自身類別 + 所有子類，外部無法存取。_hp/_maxHp 設為 protected 讓子類可以直接讀寫，但外部只能透過 HP 屬性讀取。protected override TakeDamage 讓外部無法直接呼叫此方法（只能透過 Attack 間接呼叫），是封裝 + 多型的組合應用。"
+        },
+        {
+          "id": 7,
+          "type": "coding",
+          "question": "請寫一個程式展示「向上轉型」與「向下轉型」：建立 Animal[] 陣列存放 Dog 和 Cat 物件（向上轉型），遍歷時對 Dog 呼叫 Fetch() 方法（向下轉型，使用 is/as 安全檢查）。Dog 類別要有 Fetch() 方法，Cat 類別要有 Purr() 方法。",
+          "answer": "public abstract class Animal\n{\n    public string Name { get; set; }\n    public Animal(string name) { Name = name; }\n    public abstract string MakeSound();\n}\n\npublic class Dog : Animal\n{\n    public Dog(string name) : base(name) { }\n    public override string MakeSound() => \"汪！\";\n    public string Fetch() => $\"{Name} 去撿球了！\";\n}\n\npublic class Cat : Animal\n{\n    public Cat(string name) : base(name) { }\n    public override string MakeSound() => \"喵！\";\n    public string Purr() => $\"{Name} 發出呼嚕聲\";\n}\n\n// 使用程式\nAnimal[] animals = new Animal[]  // 向上轉型（upcasting）\n{\n    new Dog(\"小黑\"),\n    new Cat(\"咪咪\"),\n    new Dog(\"小白\")\n};\n\nforeach (Animal a in animals)\n{\n    Console.WriteLine(a.MakeSound());  // 多型\n\n    // 方法一：is 運算子安全檢查\n    if (a is Dog dog)\n    {\n        Console.WriteLine(dog.Fetch());  // 向下轉型（downcasting）\n    }\n\n    // 方法二：as 運算子（失敗回傳 null）\n    Cat cat = a as Cat;\n    if (cat != null)\n    {\n        Console.WriteLine(cat.Purr());\n    }\n}",
+          "explanation": "向上轉型（Animal a = new Dog(...)）永遠安全，隱式轉換即可。向下轉型需要安全檢查：(1) `is Dog dog` 模式比對（C# 7+，推薦）；(2) `as Dog` 失敗回傳 null，需檢查 null；(3) 直接強制轉型 `(Dog)a` 失敗會拋出 InvalidCastException。"
+        },
+        {
+          "id": 8,
+          "type": "debugging",
+          "question": "以下 C# 程式碼有 2 處錯誤，請找出並修正：",
+          "buggyCode": "public class Animal\n{\n    public string Name { get; set; }\n    public Animal(string name) { Name = name; }\n\n    // 想讓子類可以 override，但忘了加關鍵字\n    public string Speak()\n    {\n        return $\"{Name} 說話了\";\n    }\n}\n\npublic class Dog : Animal\n{\n    public Dog(string name) : base(name) { }\n\n    // 錯誤 1：父類沒有 virtual，這裡寫 override 會編譯錯誤\n    public override string Speak()\n    {\n        return $\"{Name} 說：汪汪！\";\n    }\n}\n\n// 錯誤 2：嘗試直接實例化，但假設 Animal 應該是 abstract\npublic class Program\n{\n    public static void Main()\n    {\n        Animal a = new Animal(\"動物\");  // 若 Animal 是 abstract，此行錯誤\n        Dog d = new Dog(\"小黑\");\n        Animal polyAnimal = d;\n        Console.WriteLine(polyAnimal.Speak());\n    }\n}",
+          "answer": "public abstract class Animal  // [修正1] 加上 abstract，不可直接實例化\n{\n    public string Name { get; set; }\n    public Animal(string name) { Name = name; }\n\n    public virtual string Speak()  // [修正2] 加上 virtual，允許子類 override\n    {\n        return $\"{Name} 說話了\";\n    }\n}\n\npublic class Dog : Animal\n{\n    public Dog(string name) : base(name) { }\n\n    public override string Speak()  // 現在合法\n    {\n        return $\"{Name} 說：汪汪！\";\n    }\n}\n\npublic class Program\n{\n    public static void Main()\n    {\n        // Animal a = new Animal(\"動物\");  // [移除] abstract class 不可 new\n        Dog d = new Dog(\"小黑\");\n        Animal polyAnimal = d;  // 向上轉型合法\n        Console.WriteLine(polyAnimal.Speak());  // 輸出：小黑 說：汪汪！\n    }\n}",
+          "explanation": "Bug 1：父類方法沒有 virtual，子類寫 override 會產生 CS0506 編譯錯誤（「無法覆寫繼承的成員，因為它未標記為 virtual、abstract 或 override」）。Bug 2：如果設計上 Animal 不應被直接實例化，應宣告為 abstract class，並移除 new Animal() 的呼叫。"
+        },
+        {
+          "id": 9,
+          "type": "debugging",
+          "question": "以下程式碼有 1 處錯誤，請找出並修正（提示：與建構子繼承有關）：",
+          "buggyCode": "public class Person\n{\n    public string Name { get; set; }\n    public int Age { get; set; }\n\n    // 父類只有帶參數的建構子，沒有無參數建構子\n    public Person(string name, int age)\n    {\n        Name = name;\n        Age = age;\n    }\n}\n\npublic class Student : Person\n{\n    public string StudentId { get; set; }\n\n    // 錯誤：沒有呼叫父建構子\n    public Student(string studentId)\n    {\n        StudentId = studentId;\n    }\n}",
+          "answer": "public class Person\n{\n    public string Name { get; set; }\n    public int Age { get; set; }\n\n    public Person(string name, int age)\n    {\n        Name = name;\n        Age = age;\n    }\n}\n\npublic class Student : Person\n{\n    public string StudentId { get; set; }\n\n    // [修正] 必須用 base() 呼叫父建構子\n    public Student(string name, int age, string studentId)\n        : base(name, age)  // 明確呼叫父建構子\n    {\n        StudentId = studentId;\n    }\n}",
+          "explanation": "當父類沒有無參數建構子時，子類建構子**必須**用 base(...) 明確呼叫父類的建構子，否則編譯錯誤（CS7036：「沒有引數對應所需的型式參數」）。原始程式碼的 Student 建構子也缺少必要的 name 和 age 參數。"
+        },
+        {
+          "id": 10,
+          "type": "debugging",
+          "question": "以下程式碼有 1 處設計錯誤（可編譯但行為不正確），請找出並說明修正方式：",
+          "buggyCode": "public class Shape\n{\n    public virtual double Area() => 0;\n}\n\npublic class Circle : Shape\n{\n    public double Radius { get; set; }\n    public Circle(double r) { Radius = r; }\n\n    // 問題：使用 new 而非 override\n    public new double Area() => Math.PI * Radius * Radius;\n}\n\n// 測試\nShape s = new Circle(5);\nConsole.WriteLine(s.Area());  // 期望輸出：78.54，實際輸出：?",
+          "answer": "public class Shape\n{\n    public virtual double Area() => 0;\n}\n\npublic class Circle : Shape\n{\n    public double Radius { get; set; }\n    public Circle(double r) { Radius = r; }\n\n    // [修正] 改為 override，才能達成多型效果\n    public override double Area() => Math.PI * Radius * Radius;\n}\n\n// 測試\nShape s = new Circle(5);\nConsole.WriteLine(s.Area());  // 正確輸出：78.54...",
+          "explanation": "Bug：`new` 關鍵字是「方法隱藏」（hiding），不是多型覆寫。當透過父類型別 Shape 呼叫 s.Area() 時，執行的是 Shape.Area() 回傳 0，而非 Circle.Area()。只有 `override` 才能達成執行期多型（dynamic binding）。`new` 只有在透過 Circle 型別變數呼叫時才會執行 Circle 的版本。"
+        },
+        {
+          "id": 11,
+          "type": "debugging",
+          "question": "以下程式碼有 1 處錯誤（抽象類別相關），請找出並修正：",
+          "buggyCode": "public abstract class DatabaseConnection\n{\n    public abstract void Open();\n    public abstract void Close();\n\n    public void ExecuteQuery(string sql)\n    {\n        Open();\n        Console.WriteLine($\"執行查詢：{sql}\");\n        Close();\n    }\n}\n\npublic class Program\n{\n    public static void Main()\n    {\n        // 嘗試直接使用抽象類別\n        DatabaseConnection conn = new DatabaseConnection();\n        conn.ExecuteQuery(\"SELECT * FROM Users\");\n    }\n}",
+          "answer": "public abstract class DatabaseConnection\n{\n    public abstract void Open();\n    public abstract void Close();\n\n    public void ExecuteQuery(string sql)\n    {\n        Open();\n        Console.WriteLine($\"執行查詢：{sql}\");\n        Close();\n    }\n}\n\n// [修正] 必須建立具體子類實作 abstract 方法\npublic class SqlServerConnection : DatabaseConnection\n{\n    private string _connectionString;\n\n    public SqlServerConnection(string connectionString)\n    {\n        _connectionString = connectionString;\n    }\n\n    public override void Open()\n        => Console.WriteLine($\"開啟 SQL Server 連線：{_connectionString}\");\n\n    public override void Close()\n        => Console.WriteLine(\"關閉 SQL Server 連線\");\n}\n\npublic class Program\n{\n    public static void Main()\n    {\n        // [修正] 用具體子類實例化，型別可以是父類（多型）\n        DatabaseConnection conn = new SqlServerConnection(\"Server=localhost;Database=Test\");\n        conn.ExecuteQuery(\"SELECT * FROM Users\");\n    }\n}",
+          "explanation": "abstract class 無法直接 new，這是 CS0144 編譯錯誤。必須建立一個具體（concrete）類別繼承它並實作所有 abstract 方法，才能實例化。注意：變數型別可以宣告為 DatabaseConnection（父類），但 new 的對象必須是具體子類。"
+        },
+        {
+          "id": 12,
+          "type": "debugging",
+          "question": "以下程式碼有 1 處邏輯錯誤（override 時忘記呼叫 base），請找出並修正：",
+          "buggyCode": "public class Animal\n{\n    public List<string> Activities { get; } = new List<string>();\n\n    public virtual void Initialize()\n    {\n        Activities.Add(\"呼吸\");\n        Activities.Add(\"移動\");\n    }\n}\n\npublic class Dog : Animal\n{\n    public override void Initialize()\n    {\n        // 忘記呼叫 base.Initialize()\n        Activities.Add(\"搖尾巴\");\n        Activities.Add(\"吠叫\");\n    }\n}\n\nDog dog = new Dog();\ndog.Initialize();\n// 期望：呼吸、移動、搖尾巴、吠叫\n// 實際：只有 搖尾巴、吠叫",
+          "answer": "public class Animal\n{\n    public List<string> Activities { get; } = new List<string>();\n\n    public virtual void Initialize()\n    {\n        Activities.Add(\"呼吸\");\n        Activities.Add(\"移動\");\n    }\n}\n\npublic class Dog : Animal\n{\n    public override void Initialize()\n    {\n        base.Initialize();  // [修正] 先呼叫父類初始化，再加入子類特有行為\n        Activities.Add(\"搖尾巴\");\n        Activities.Add(\"吠叫\");\n    }\n}\n\nDog dog = new Dog();\ndog.Initialize();\n// 正確輸出：呼吸、移動、搖尾巴、吠叫",
+          "explanation": "override 方法中如果需要保留父類的行為，必須明確呼叫 base.Method()。忘記呼叫 base 會導致父類邏輯完全被跳過，這是很常見的繼承 bug。注意 base.Initialize() 的呼叫位置：放在子類邏輯之前（先父後子），確保父類初始化先完成。"
+        },
+        {
+          "id": 13,
+          "type": "multiple-choice",
+          "question": "關於 C# 中 abstract 和 virtual 的差異，以下敘述何者**正確**？",
+          "options": [
+            "A. abstract 方法可以有方法體（implementation），virtual 方法不可以",
+            "B. abstract 方法強制子類必須 override，virtual 方法的 override 是可選的",
+            "C. abstract class 可以被直接實例化（new），virtual 所在的類別不能",
+            "D. 一個類別可以同時宣告為 abstract 和 sealed"
+          ],
+          "answer": "B",
+          "explanation": "B 正確：abstract 方法無方法體，所有非抽象子類**必須** override；virtual 方法有預設實作，子類可以選擇 override 或直接使用父類版本。A 錯：abstract 方法沒有方法體，virtual 才有。C 錯：abstract class 不能 new，virtual 所在的類別通常可以 new。D 錯：abstract 和 sealed 互斥，abstract 要求被繼承，sealed 禁止被繼承。"
+        },
+        {
+          "id": 14,
+          "type": "multiple-choice",
+          "question": "執行以下程式碼，Console.WriteLine(a.GetInfo()) 的輸出是？\n```\npublic class Base { public virtual string GetInfo() => \"Base\"; }\npublic class Derived : Base { public override string GetInfo() => \"Derived\"; }\nBase a = new Derived();\nConsole.WriteLine(a.GetInfo());\n```",
+          "options": [
+            "A. Base",
+            "B. Derived",
+            "C. 編譯錯誤",
+            "D. 執行時拋出 InvalidCastException"
+          ],
+          "answer": "B",
+          "explanation": "B 正確。這是執行期多型（dynamic binding）：雖然變數 a 的靜態型別是 Base，但物件的實際型別是 Derived。呼叫 virtual 方法時，C# runtime 根據**實際型別**決定執行哪個版本，因此執行 Derived.GetInfo() 輸出 \"Derived\"。這正是多型的核心精神：同一個介面，不同的行為。"
+        },
+        {
+          "id": 15,
+          "type": "multiple-choice",
+          "question": "以下關於 C# 封裝（Encapsulation）的敘述，何者**最能**描述封裝的目的？",
+          "options": [
+            "A. 讓類別的所有方法都宣告為 public，方便外部呼叫",
+            "B. 將類別的實作細節隱藏，只暴露必要的介面，防止外部直接修改內部狀態",
+            "C. 讓子類可以繼承父類的私有（private）欄位",
+            "D. 使用 abstract 關鍵字隱藏方法的實作"
+          ],
+          "answer": "B",
+          "explanation": "B 正確。封裝的核心是「資料隱藏（data hiding）」：欄位設為 private，透過 Property/Method 提供有控制的存取，在 setter 中加入驗證邏輯確保狀態合法性。A 錯：全 public 破壞封裝。C 錯：private 欄位子類不可存取（需用 protected）。D 錯：abstract 是抽象的概念，不是封裝。"
+        }
+      ]
+    },
+    {
+      "id": "interface-abstract",
+      "title": "介面 vs 抽象類別",
+      "content": "介面（interface）與抽象類別（abstract class）都是定義「契約」的機制，但用途與限制不同，是考試最常出現的比較題型。\n\n**介面（interface）的特性**：\n- 所有成員預設 public（C# 8+ 以前不可有實作；C# 8+ 可有 default 實作）\n- **不能有欄位（field）、建構子**\n- 一個類別可實作**多個**介面（解決 C# 單一繼承的限制）\n- 介面本身不能有狀態（state），只定義行為契約\n- 宣告語法：`public interface IXxx { ... }`，成員**不需加 public**（隱含 public）\n\n**抽象類別（abstract class）的特性**：\n- 可以有欄位、屬性、建構子、已實作的方法\n- 可以有 abstract 方法（子類必須實作）和 virtual 方法（可選 override）\n- 一個類別只能繼承**一個**抽象類別\n- 適合用於「同類型物件共享狀態與部分實作」的場景\n\n**何時用介面 vs 抽象類別**：\n- 用**介面**：當不同類型的類別需要共同行為（跨繼承樹），例如 IComparable、IDisposable；或需要多重實作\n- 用**抽象類別**：當一組相關類別共享程式碼（DRY 原則），且有共同的狀態（欄位）\n\n**C# 常見內建介面**：`IComparable<T>`（排序）、`IEnumerable<T>`（foreach 支援）、`IDisposable`（資源釋放）、`IEquatable<T>`（相等比較）。",
+      "codeExample": "// ── 介面：定義跨類別的行為契約 ──\npublic interface IPayable\n{\n    decimal GetPayAmount();  // 隱含 public abstract\n    string PaymentDescription => $\"付款金額：{GetPayAmount():C}\";  // C# 8+ default 實作\n}\n\npublic interface ILoggable\n{\n    void Log(string message);\n}\n\n// ── 抽象類別：共享狀態與部分實作 ──\npublic abstract class Employee\n{\n    // 抽象類別可以有欄位和建構子\n    private string _name;\n    public string Name\n    {\n        get => _name;\n        set => _name = string.IsNullOrWhiteSpace(value) ? \"Unknown\" : value;\n    }\n    protected decimal _baseSalary;\n\n    public Employee(string name, decimal baseSalary)\n    {\n        Name = name;\n        _baseSalary = baseSalary;\n    }\n\n    public abstract decimal CalculatePay();  // 子類必須實作\n\n    public virtual string GetTitle() => \"員工\";  // 子類可選擇 override\n}\n\n// ── 類別可以繼承一個抽象類別 + 實作多個介面 ──\npublic class SalariedEmployee : Employee, IPayable, ILoggable\n{\n    public SalariedEmployee(string name, decimal salary)\n        : base(name, salary) { }\n\n    public override decimal CalculatePay() => _baseSalary;\n\n    // IPayable 實作\n    public decimal GetPayAmount() => CalculatePay();\n\n    // ILoggable 實作\n    public void Log(string message)\n        => Console.WriteLine($\"[{Name}] {message}\");\n}\n\npublic class CommissionEmployee : Employee, IPayable\n{\n    public decimal CommissionRate { get; set; }\n    public decimal GrossSales { get; set; }\n\n    public CommissionEmployee(string name, decimal rate, decimal sales)\n        : base(name, 0) { CommissionRate = rate; GrossSales = sales; }\n\n    public override decimal CalculatePay() => GrossSales * CommissionRate;\n    public decimal GetPayAmount() => CalculatePay();\n    public override string GetTitle() => \"業務員\";\n}\n\n// IPayable 介面多型：不同類別透過共同介面操作\nList<IPayable> payables = new List<IPayable> { new SalariedEmployee(\"王小明\", 50000), new CommissionEmployee(\"李大華\", 0.1m, 300000) };\nforeach (IPayable p in payables)\n    Console.WriteLine(p.PaymentDescription);",
+      "keyPoints": [
+        "介面不能有欄位和建構子；抽象類別可以有。這是最常考的差異點",
+        "一個類別可實作多個介面（用逗號分隔），但只能繼承一個類別（含抽象類別）",
+        "介面成員宣告時不加 public/abstract（隱含的）；實作時要加 public override（如果是顯式實作則不加）",
+        "IComparable<T> 需實作 CompareTo(T other)，讓物件支援 List.Sort() 和 Array.Sort()",
+        "C# 8+ 的 default interface method：介面可提供預設實作，但類別若實作了就用類別版本"
+      ],
+      "exercises": [
+        {
+          "id": 1,
+          "type": "coding",
+          "question": "請定義一個 IShape 介面，包含 double Area()、double Perimeter() 和 string ShapeType { get; } 屬性。再寫 Circle（半徑）和 Rectangle（長寬）實作此介面，最後寫一個靜態方法 PrintShapeInfo(IShape shape) 輸出所有資訊。",
+          "answer": "public interface IShape\n{\n    double Area();\n    double Perimeter();\n    string ShapeType { get; }  // 唯讀屬性\n}\n\npublic class Circle : IShape\n{\n    public double Radius { get; }\n    public Circle(double radius) { Radius = radius; }\n\n    public double Area() => Math.PI * Radius * Radius;\n    public double Perimeter() => 2 * Math.PI * Radius;\n    public string ShapeType => \"圓形\";\n}\n\npublic class Rectangle : IShape\n{\n    public double Width { get; }\n    public double Height { get; }\n    public Rectangle(double w, double h) { Width = w; Height = h; }\n\n    public double Area() => Width * Height;\n    public double Perimeter() => 2 * (Width + Height);\n    public string ShapeType => \"矩形\";\n}\n\npublic static void PrintShapeInfo(IShape shape)\n{\n    Console.WriteLine($\"類型：{shape.ShapeType}\");\n    Console.WriteLine($\"面積：{shape.Area():F2}\");\n    Console.WriteLine($\"周長：{shape.Perimeter():F2}\");\n    Console.WriteLine();\n}\n\n// 使用\nPrintShapeInfo(new Circle(5));\nPrintShapeInfo(new Rectangle(4, 6));",
+          "explanation": "介面成員宣告不加存取修飾子（隱含 public）。實作介面時，成員必須宣告為 public（否則 CS0737 錯誤）。介面中的屬性只有 getter 宣告：`string ShapeType { get; }`，實作時用 `=> \"圓形\"` 或完整的 { get { return \"圓形\"; } } 皆可。"
+        },
+        {
+          "id": 2,
+          "type": "coding",
+          "question": "請讓 Student 類別實作 IComparable<Student>，使 List<Student> 可以依照 GPA（成績點數）由高到低排序。Student 有 Name（string）和 GPA（double）屬性。寫出完整的 Student 類別與排序測試程式。",
+          "answer": "public class Student : IComparable<Student>\n{\n    public string Name { get; set; }\n    public double GPA { get; set; }\n\n    public Student(string name, double gpa)\n    {\n        Name = name;\n        GPA = gpa;\n    }\n\n    // IComparable<T> 要求實作此方法\n    // 回傳負數：this 排在 other 前面\n    // 回傳 0：相等\n    // 回傳正數：this 排在 other 後面\n    public int CompareTo(Student? other)\n    {\n        if (other == null) return 1;\n        // 由高到低：other 和 this 順序對調\n        return other.GPA.CompareTo(this.GPA);\n    }\n\n    public override string ToString() => $\"{Name}：GPA {GPA:F2}\";\n}\n\n// 測試\nList<Student> students = new List<Student>\n{\n    new Student(\"小明\", 3.5),\n    new Student(\"小華\", 3.8),\n    new Student(\"小英\", 3.2),\n    new Student(\"小強\", 3.8)\n};\n\nstudents.Sort();  // 呼叫 IComparable<Student>.CompareTo\nforeach (Student s in students)\n    Console.WriteLine(s);",
+          "explanation": "IComparable<T> 的 CompareTo 回傳值決定排序順序：負數表示 this 在前。若要由高到低（降序），讓 other.CompareTo(this) 即可。List.Sort() 和 Array.Sort() 都依賴 IComparable<T>。注意 other 可能為 null（nullable reference type），需要處理。"
+        },
+        {
+          "id": 3,
+          "type": "coding",
+          "question": "請設計一個展示多重介面實作的範例：定義 IFlyable（Fly() 方法）和 ISwimmable（Swim() 方法）兩個介面；Penguin 類別實作兩個介面但 Fly() 應拋出 NotSupportedException；Eagle 類別只實作 IFlyable。寫一個方法 MakeItFly(IFlyable f) 展示介面多型。",
+          "answer": "public interface IFlyable\n{\n    void Fly();\n    int MaxAltitude { get; }  // 最大飛行高度（公尺）\n}\n\npublic interface ISwimmable\n{\n    void Swim();\n    int MaxDepth { get; }  // 最大潛水深度（公尺）\n}\n\npublic class Eagle : IFlyable\n{\n    public string Name { get; set; }\n    public Eagle(string name) { Name = name; }\n\n    public void Fly() => Console.WriteLine($\"{Name} 展翅高飛！\");\n    public int MaxAltitude => 3000;\n}\n\npublic class Penguin : IFlyable, ISwimmable  // 同時實作兩個介面\n{\n    public string Name { get; set; }\n    public Penguin(string name) { Name = name; }\n\n    // 企鵝不會飛，但實作 IFlyable\n    public void Fly() => throw new NotSupportedException($\"{Name} 不會飛！\");\n    public int MaxAltitude => 0;\n\n    public void Swim() => Console.WriteLine($\"{Name} 在水中游泳！\");\n    public int MaxDepth => 500;\n}\n\n// 介面作為參數型別（多型）\npublic static void MakeItFly(IFlyable f)\n{\n    try\n    {\n        Console.WriteLine($\"最大飛行高度：{f.MaxAltitude} 公尺\");\n        f.Fly();\n    }\n    catch (NotSupportedException ex)\n    {\n        Console.WriteLine($\"無法飛行：{ex.Message}\");\n    }\n}\n\n// 測試\nMakeItFly(new Eagle(\"老鷹\"));\nMakeItFly(new Penguin(\"企鵝\"));",
+          "explanation": "多重介面實作用逗號分隔：class Penguin : IFlyable, ISwimmable。每個介面的成員都必須全部實作，否則編譯錯誤。將 IFlyable 作為方法參數型別，可接受任何實作該介面的物件（不論繼承關係），比用繼承更靈活。"
+        },
+        {
+          "id": 4,
+          "type": "coding",
+          "question": "設計一個 ILogger 介面（void Info(string msg) 和 void Error(string msg)），並利用 C# 8+ 的 default interface method，在介面中提供 void Warning(string msg) 的預設實作（在 msg 前加 [WARNING]）。再寫兩個實作類別：ConsoleLogger（實作所有方法）和 FileLogger（只 override Info 和 Error，保留 Warning 預設）。",
+          "answer": "public interface ILogger\n{\n    void Info(string msg);\n    void Error(string msg);\n\n    // C# 8+ default interface method\n    void Warning(string msg)\n    {\n        // 預設實作：所有實作類別若未 override，使用此版本\n        Console.WriteLine($\"[WARNING] {msg}\");\n    }\n}\n\npublic class ConsoleLogger : ILogger\n{\n    public void Info(string msg) => Console.WriteLine($\"[INFO] {msg}\");\n    public void Error(string msg) => Console.WriteLine($\"[ERROR] {msg}\");\n\n    // 覆寫 default 實作\n    public void Warning(string msg) => Console.WriteLine($\"[WARN ⚠] {msg}\");\n}\n\npublic class FileLogger : ILogger\n{\n    private string _path;\n    public FileLogger(string path) { _path = path; }\n\n    public void Info(string msg)\n        => Console.WriteLine($\"[FILE-INFO:{_path}] {msg}\");\n\n    public void Error(string msg)\n        => Console.WriteLine($\"[FILE-ERROR:{_path}] {msg}\");\n\n    // 未 override Warning，使用介面的 default 實作\n}\n\n// 測試\nILogger console = new ConsoleLogger();\nILogger file = new FileLogger(\"/var/log/app.log\");\n\nconsole.Warning(\"磁碟空間不足\");  // [WARN ⚠] 磁碟空間不足（ConsoleLogger 自己的版本）\nfile.Warning(\"磁碟空間不足\");    // [WARNING] 磁碟空間不足（預設版本）",
+          "explanation": "C# 8+ 的 default interface method 讓介面可以提供預設實作，不破壞現有實作類別（backward compatibility）。注意：只能透過介面型別的變數呼叫 default 方法，若透過類別型別呼叫且類別沒有實作該方法，則編譯錯誤（因為類別型別不知道此方法）。"
+        },
+        {
+          "id": 5,
+          "type": "coding",
+          "question": "請同時展示「介面」與「抽象類別」的選擇邏輯：設計一個 Animal 抽象類別（有共用的 Name 屬性和 Eat() 已實作方法），以及一個 IDomesticatable 介面（void BeTrained() 方法）。Dog 繼承 Animal 並實作 IDomesticatable；Wolf 只繼承 Animal 但不實作介面。寫測試程式，僅對可馴養的動物呼叫 BeTrained()。",
+          "answer": "// 抽象類別：提供共用狀態和實作（同類型物件共享邏輯）\npublic abstract class Animal\n{\n    public string Name { get; set; }\n    protected int _energy;\n\n    public Animal(string name)\n    {\n        Name = name;\n        _energy = 100;\n    }\n\n    // 已實作的共用方法\n    public void Eat(string food)\n    {\n        _energy += 10;\n        Console.WriteLine($\"{Name} 吃了 {food}，體力：{_energy}\");\n    }\n\n    public abstract string MakeSound();  // 各子類不同\n}\n\n// 介面：跨類別的行為契約（可馴養性與 Animal 無必然關係）\npublic interface IDomesticatable\n{\n    void BeTrained(string command);\n    int TrainingLevel { get; }\n}\n\npublic class Dog : Animal, IDomesticatable\n{\n    public int TrainingLevel { get; private set; }\n\n    public Dog(string name) : base(name) { TrainingLevel = 0; }\n\n    public override string MakeSound() => \"汪汪！\";\n\n    public void BeTrained(string command)\n    {\n        TrainingLevel++;\n        Console.WriteLine($\"{Name} 學會了指令：{command}（訓練等級 {TrainingLevel}）\");\n    }\n}\n\npublic class Wolf : Animal\n{\n    public Wolf(string name) : base(name) { }\n    public override string MakeSound() => \"嚎叫！\";\n    // 狼不實作 IDomesticatable\n}\n\n// 測試\nList<Animal> animals = new List<Animal> { new Dog(\"小黑\"), new Wolf(\"灰太狼\"), new Dog(\"小白\") };\nforeach (Animal a in animals)\n{\n    a.Eat(\"肉\");\n    if (a is IDomesticatable trainable)  // 只有 Dog 會進入\n        trainable.BeTrained(\"坐下\");\n}",
+          "explanation": "選擇準則：共享狀態（欄位 _energy）+ 共用邏輯（Eat 方法）→ 用抽象類別；跨繼承樹的行為契約（可馴養性）→ 用介面。is IDomesticatable 模式比對是安全的向下轉型，只有實作該介面的物件才會進入。"
+        },
+        {
+          "id": 6,
+          "type": "debugging",
+          "question": "以下介面定義有 2 處錯誤，請找出並修正：",
+          "buggyCode": "public interface IAnimal\n{\n    // 錯誤 1：介面中不能有欄位\n    private string _name;\n\n    string Name { get; set; }\n\n    // 錯誤 2：介面成員不能加 public（在 C# 8 以前的環境，也不能有方法體）\n    public string Speak()\n    {\n        return \"...\";\n    }\n\n    void Eat();  // 正確的抽象方法宣告\n}",
+          "answer": "public interface IAnimal\n{\n    // [移除] 介面不能有欄位（field）\n    // private string _name;  ← 移除此行\n\n    string Name { get; set; }  // 屬性宣告是合法的\n\n    // [修正] C# 8 以前：移除方法體，只留宣告\n    // C# 8+：加上介面方法體（default implementation）合法，但不加 public\n    string Speak();  // 純宣告（無方法體）\n\n    void Eat();\n}",
+          "explanation": "介面的兩大限制：(1) 不能有欄位（field），可以有屬性（property）；(2) C# 8 以前所有方法必須是純宣告（無方法體），成員不加 public（隱含 public abstract）。C# 8+ 允許 default interface method，但仍不能有欄位。"
+        },
+        {
+          "id": 7,
+          "type": "debugging",
+          "question": "以下程式碼有 1 處錯誤（未完整實作介面），請找出並修正：",
+          "buggyCode": "public interface IVehicle\n{\n    void Start();\n    void Stop();\n    int GetSpeed();\n    string VehicleType { get; }\n}\n\n// 只實作了部分介面成員\npublic class Bicycle : IVehicle\n{\n    private int _speed;\n\n    public void Start()\n    {\n        _speed = 15;\n        Console.WriteLine(\"自行車開始騎行\");\n    }\n\n    public void Stop()\n    {\n        _speed = 0;\n        Console.WriteLine(\"自行車停止\");\n    }\n\n    // 遺漏了 GetSpeed() 和 VehicleType 的實作\n}",
+          "answer": "public interface IVehicle\n{\n    void Start();\n    void Stop();\n    int GetSpeed();\n    string VehicleType { get; }\n}\n\npublic class Bicycle : IVehicle\n{\n    private int _speed;\n\n    public void Start()\n    {\n        _speed = 15;\n        Console.WriteLine(\"自行車開始騎行\");\n    }\n\n    public void Stop()\n    {\n        _speed = 0;\n        Console.WriteLine(\"自行車停止\");\n    }\n\n    // [修正] 補上缺少的介面成員實作\n    public int GetSpeed() => _speed;\n\n    public string VehicleType => \"非機動車輛\";\n}",
+          "explanation": "CS0535 編譯錯誤：「Bicycle 未實作介面成員 IVehicle.GetSpeed() 和 IVehicle.VehicleType」。實作介面時，介面的**所有**成員都必須實作（C# 8+ 有 default 實作的除外）。屬性 VehicleType { get; } 用 `=> \"...\"` expression-body 實作即可。"
+        },
+        {
+          "id": 8,
+          "type": "debugging",
+          "question": "以下程式碼有 1 處錯誤（介面實作的存取修飾子問題），請找出並修正：",
+          "buggyCode": "public interface IGreeting\n{\n    string SayHello(string name);\n}\n\npublic class EnglishGreeting : IGreeting\n{\n    // 錯誤：實作介面方法時少了 public\n    string SayHello(string name)\n    {\n        return $\"Hello, {name}!\";\n    }\n}",
+          "answer": "public interface IGreeting\n{\n    string SayHello(string name);\n}\n\npublic class EnglishGreeting : IGreeting\n{\n    // [修正] 加上 public\n    public string SayHello(string name)\n    {\n        return $\"Hello, {name}!\";\n    }\n}",
+          "explanation": "實作介面方法時必須加 public，因為介面成員隱含 public。若不加 public，C# 會視為 private（類別的預設存取等級），導致 CS0737 錯誤：「EnglishGreeting 未將介面成員 SayHello 實作為公用成員」。這是考試常見的陷阱。"
+        },
+        {
+          "id": 9,
+          "type": "debugging",
+          "question": "以下程式碼試圖用介面型別的變數呼叫不在介面中的方法，請找出問題並說明如何修正（2種方式）：",
+          "buggyCode": "public interface IWorker\n{\n    void Work();\n}\n\npublic class Developer : IWorker\n{\n    public void Work() => Console.WriteLine(\"寫程式碼\");\n    public void CodeReview() => Console.WriteLine(\"進行程式碼審查\");\n}\n\nIWorker worker = new Developer();\nworker.Work();       // 正確\nworker.CodeReview(); // 錯誤：IWorker 介面沒有 CodeReview()",
+          "answer": "public interface IWorker\n{\n    void Work();\n}\n\npublic class Developer : IWorker\n{\n    public void Work() => Console.WriteLine(\"寫程式碼\");\n    public void CodeReview() => Console.WriteLine(\"進行程式碼審查\");\n}\n\nIWorker worker = new Developer();\nworker.Work();\n\n// [修正方式 1] 向下轉型（downcasting）\nif (worker is Developer dev)\n{\n    dev.CodeReview();  // 安全向下轉型\n}\n\n// [修正方式 2] 宣告時用具體型別\nDeveloper developer = new Developer();\ndeveloper.Work();\ndeveloper.CodeReview();  // 直接呼叫，不需轉型",
+          "explanation": "介面型別的變數只能呼叫**介面中定義的成員**，即使實際物件有更多方法。要呼叫子類特有方法，需向下轉型為具體型別（用 is 安全轉型）。若你確定物件是特定型別，方式 2 直接用具體型別宣告更簡潔。"
+        },
+        {
+          "id": 10,
+          "type": "multiple-choice",
+          "question": "關於 C# 介面（interface）與抽象類別（abstract class）的比較，以下敘述何者**正確**？",
+          "options": [
+            "A. 介面可以有欄位（field），抽象類別不可以",
+            "B. 一個類別可以繼承多個抽象類別，但只能實作一個介面",
+            "C. 介面不能有建構子，抽象類別可以有建構子",
+            "D. 介面的所有方法都必須由實作類別覆寫，抽象類別的方法也全部必須覆寫"
+          ],
+          "answer": "C",
+          "explanation": "C 正確：介面沒有建構子（因為不能被實例化且不能有狀態）；抽象類別有建構子（供子類 base() 呼叫）。A 錯：介面不能有欄位，抽象類別可以。B 錯：C# 一個類別只能繼承一個類別（含抽象），但可實作**多個**介面。D 錯：抽象類別中只有 abstract 方法才必須覆寫，virtual 方法是可選的。"
+        },
+        {
+          "id": 11,
+          "type": "multiple-choice",
+          "question": "以下程式碼的執行結果是？\n```csharp\npublic interface IAnimal { string Speak() => \"...\"; }  // default 實作\npublic class Cat : IAnimal { public string Speak() => \"喵\"; }\nIAnimal a = new Cat();\nCat c = new Cat();\nConsole.WriteLine(a.Speak() + \"|\" + c.Speak());\n```",
+          "options": [
+            "A. ...|...",
+            "B. 喵|喵",
+            "C. ...|喵",
+            "D. 編譯錯誤"
+          ],
+          "answer": "B",
+          "explanation": "B 正確。Cat 的 Speak() 實作「覆蓋」了介面的 default 實作。透過介面型別 IAnimal a 呼叫時，C# 會優先使用類別的實作而非介面的 default，因此 a.Speak() 也回傳「喵」。兩者都是「喵|喵」。（注意：若 Cat 完全沒有 Speak() 方法，才會使用介面 default 回傳「...」）"
+        },
+        {
+          "id": 12,
+          "type": "multiple-choice",
+          "question": "設計情境：你正在設計一個系統，有 Bird、Airplane、Kite 三個不相關的類別，都需要「飛行」的能力。應該使用介面還是抽象類別？理由是？",
+          "options": [
+            "A. 抽象類別 FlyingObject，因為三個類別都要飛，共用邏輯較多",
+            "B. 介面 IFlyable，因為三個類別沒有「是同一種東西」的繼承關係，只是共享行為",
+            "C. 不需要介面或抽象類別，直接在每個類別中各自定義 Fly() 方法",
+            "D. 介面和抽象類別都不適合，應該用 static 方法"
+          ],
+          "answer": "B",
+          "explanation": "B 正確。Bird 是動物、Airplane 是機器、Kite 是玩具，它們之間沒有「IS-A」繼承關係，不適合用抽象類別（那會強迫它們有共同祖先）。介面 IFlyable 表達「具備飛行能力」的行為契約，適合跨繼承樹的能力共享。C# 中「能力（capability）→ 介面；共同本質（identity）→ 抽象類別/繼承」是標準設計原則。"
+        }
+      ]
+    },
+    {
+      "id": "generics",
+      "title": "泛型 (Generics)",
+      "content": "泛型（Generics）讓類別、方法、介面可以在定義時不指定具體型別，使用時再傳入型別參數，達到「型別安全的程式碼重用」。相比直接使用 object，泛型避免了裝箱拆箱（boxing/unboxing）的效能損耗，也提供編譯期型別檢查。\n\n**泛型語法基礎**：\n- 泛型類別：`class MyClass<T> { ... }`\n- 泛型方法：`public T GetFirst<T>(T[] arr) { ... }`\n- 多個型別參數：`class Pair<T1, T2> { ... }`，如 `Dictionary<TKey, TValue>`\n- 使用時指定型別：`new MyClass<int>()`、`GetFirst<string>(arr)`（型別可推斷時可省略）\n\n**型別約束（Type Constraints）`where T : ...`**：\n- `where T : class`：T 必須是參考型別（reference type，含 class、interface、string）\n- `where T : struct`：T 必須是值型別（value type，含 int、double、struct，不含 nullable）\n- `where T : new()`：T 必須有公開無參數建構子（可在泛型中使用 new T()）\n- `where T : SomeClass`：T 必須繼承自 SomeClass\n- `where T : ISomeInterface`：T 必須實作 ISomeInterface\n- `where T : IComparable<T>`：T 必須支援比較（常用於排序、找最大最小）\n- 多個約束：`where T : class, IComparable<T>, new()`\n\n**共變性與逆變性（Covariance / Contravariance）**（進階，了解概念即可）：\n- `out T`（共變，IEnumerable<out T>）：可將 IEnumerable<Derived> 指派給 IEnumerable<Base>\n- `in T`（逆變，IComparer<in T>）：可將 IComparer<Base> 指派給 IComparer<Derived>\n\n**考試常考**：手寫泛型 Stack<T>（Push/Pop/Peek/IsEmpty）、泛型 Swap 方法、帶有 IComparable<T> 約束的 Max<T> 方法。",
+      "codeExample": "// 泛型類別：型別安全的 Stack\npublic class Stack<T>\n{\n    private T[] _items;\n    private int _top;\n\n    public Stack(int capacity = 16)\n    {\n        _items = new T[capacity];\n        _top = -1;\n    }\n\n    public bool IsEmpty => _top < 0;\n    public int Count => _top + 1;\n\n    public void Push(T item)\n    {\n        if (_top >= _items.Length - 1)\n            throw new InvalidOperationException(\"Stack 已滿\");\n        _items[++_top] = item;\n    }\n\n    public T Pop()\n    {\n        if (IsEmpty) throw new InvalidOperationException(\"Stack 為空\");\n        T item = _items[_top];\n        _items[_top--] = default!;  // 清除參考，協助 GC\n        return item;\n    }\n\n    public T Peek()\n    {\n        if (IsEmpty) throw new InvalidOperationException(\"Stack 為空\");\n        return _items[_top];\n    }\n}\n\n// 帶型別約束的泛型方法\npublic static T Max<T>(T a, T b) where T : IComparable<T>\n{\n    return a.CompareTo(b) >= 0 ? a : b;\n}\n\n// 使用\nStack<int> intStack = new Stack<int>();\nintStack.Push(1); intStack.Push(2); intStack.Push(3);\nConsole.WriteLine(intStack.Pop());  // 3\n\nStack<string> strStack = new Stack<string>();\nstrStack.Push(\"hello\"); strStack.Push(\"world\");\nConsole.WriteLine(strStack.Peek());  // world\n\n// 型別約束：可呼叫 CompareTo()\nConsole.WriteLine(Max(3, 7));        // 7\nConsole.WriteLine(Max(\"apple\", \"banana\"));  // banana",
+      "keyPoints": [
+        "泛型 Stack<T> 的四個核心方法：Push（加入）、Pop（取出並移除）、Peek（查看不移除）、IsEmpty（是否空）",
+        "where T : IComparable<T> 是最常考的約束，讓泛型方法可以呼叫 CompareTo() 進行比較",
+        "where T : new() 讓泛型方法內可以寫 new T()，但 T 必須有公開無參數建構子",
+        "where T : class 表示只接受參考型別；where T : struct 表示只接受值型別",
+        "多個約束的語法：where T : class, IComparable<T>（逗號分隔，new() 若有必須放最後）"
+      ],
+      "exercises": [
+        {
+          "id": 1,
+          "type": "coding",
+          "question": "請手寫一個泛型 Stack<T> 類別，以 List<T> 為底層儲存（不限制容量），包含：Push(T item)、T Pop()、T Peek()、bool IsEmpty 屬性、int Count 屬性。Pop 和 Peek 在空時拋出 InvalidOperationException。",
+          "answer": "public class Stack<T>\n{\n    private List<T> _items = new List<T>();\n\n    public bool IsEmpty => _items.Count == 0;\n    public int Count => _items.Count;\n\n    public void Push(T item)\n    {\n        _items.Add(item);  // 加到末端（頂部）\n    }\n\n    public T Pop()\n    {\n        if (IsEmpty)\n            throw new InvalidOperationException(\"Stack 為空，無法 Pop\");\n\n        T item = _items[_items.Count - 1];\n        _items.RemoveAt(_items.Count - 1);\n        return item;\n    }\n\n    public T Peek()\n    {\n        if (IsEmpty)\n            throw new InvalidOperationException(\"Stack 為空，無法 Peek\");\n\n        return _items[_items.Count - 1];\n    }\n\n    public override string ToString()\n        => $\"Stack<{typeof(T).Name}>[{string.Join(\", \", _items)}]（頂部在右）\";\n}\n\n// 測試\nStack<int> s = new Stack<int>();\ns.Push(10); s.Push(20); s.Push(30);\nConsole.WriteLine(s.Peek());   // 30\nConsole.WriteLine(s.Pop());    // 30\nConsole.WriteLine(s.Count);    // 2",
+          "explanation": "使用 List<T> 作為底層比陣列更簡單（不需管理容量）。Stack 的頂部對應 List 的末端（_items.Count - 1）。Pop 要先存值、再 RemoveAt、再回傳（不能直接 return _items.RemoveAt(...)，因為 RemoveAt 回傳 void）。"
+        },
+        {
+          "id": 2,
+          "type": "coding",
+          "question": "請寫一個泛型方法 Swap<T>(ref T a, ref T b)，交換兩個變數的值。再寫一個泛型方法 Reverse<T>(T[] arr)，原地反轉陣列（使用 Swap）。寫測試程式分別對 int[] 和 string[] 使用。",
+          "answer": "public static void Swap<T>(ref T a, ref T b)\n{\n    T temp = a;\n    a = b;\n    b = temp;\n}\n\npublic static void Reverse<T>(T[] arr)\n{\n    int left = 0;\n    int right = arr.Length - 1;\n    while (left < right)\n    {\n        Swap(ref arr[left], ref arr[right]);  // 型別推斷，不需寫 Swap<T>\n        left++;\n        right--;\n    }\n}\n\n// 測試\nint x = 5, y = 10;\nSwap(ref x, ref y);  // 型別推斷為 int\nConsole.WriteLine($\"x={x}, y={y}\");  // x=10, y=5\n\nint[] nums = { 1, 2, 3, 4, 5 };\nReverse(nums);\nConsole.WriteLine(string.Join(\", \", nums));  // 5, 4, 3, 2, 1\n\nstring[] words = { \"apple\", \"banana\", \"cherry\" };\nReverse(words);\nConsole.WriteLine(string.Join(\", \", words));  // cherry, banana, apple",
+          "explanation": "ref 關鍵字讓方法可以修改呼叫端的變數（傳參考而非值）。泛型方法呼叫時通常可以省略型別參數，讓編譯器自動推斷（type inference）：Swap(ref x, ref y) 中編譯器從 x、y 的型別推斷 T = int。"
+        },
+        {
+          "id": 3,
+          "type": "coding",
+          "question": "請寫一個帶型別約束的泛型方法 T FindMax<T>(IEnumerable<T> items)，要求 T 必須實作 IComparable<T>，方法回傳集合中最大的元素（集合為空時拋出 ArgumentException）。再寫 T FindMin<T>。測試用 int 和 string。",
+          "answer": "public static T FindMax<T>(IEnumerable<T> items) where T : IComparable<T>\n{\n    T? max = default;\n    bool first = true;\n\n    foreach (T item in items)\n    {\n        if (first)\n        {\n            max = item;\n            first = false;\n        }\n        else if (item.CompareTo(max!) > 0)  // 正數表示 item > max\n        {\n            max = item;\n        }\n    }\n\n    if (first)  // 集合是空的\n        throw new ArgumentException(\"集合不能為空\");\n\n    return max!;\n}\n\npublic static T FindMin<T>(IEnumerable<T> items) where T : IComparable<T>\n{\n    T? min = default;\n    bool first = true;\n\n    foreach (T item in items)\n    {\n        if (first) { min = item; first = false; }\n        else if (item.CompareTo(min!) < 0)  // 負數表示 item < min\n            min = item;\n    }\n\n    if (first) throw new ArgumentException(\"集合不能為空\");\n    return min!;\n}\n\n// 測試\nint[] nums = { 3, 1, 4, 1, 5, 9, 2, 6 };\nConsole.WriteLine(FindMax(nums));   // 9\nConsole.WriteLine(FindMin(nums));   // 1\n\nstring[] words = { \"banana\", \"apple\", \"cherry\" };\nConsole.WriteLine(FindMax(words));  // cherry（字典序最大）\nConsole.WriteLine(FindMin(words));  // apple",
+          "explanation": "where T : IComparable<T> 讓方法內可以呼叫 item.CompareTo(other)。CompareTo 的回傳值：正數表示 this > other，負數表示 this < other，0 表示相等。接受 IEnumerable<T> 比 T[] 更通用，List<T>、陣列、HashSet<T> 都可傳入。"
+        },
+        {
+          "id": 4,
+          "type": "coding",
+          "question": "請寫一個泛型類別 Pair<TFirst, TSecond>，儲存兩個不同型別的值。包含：建構子、唯讀屬性 First 和 Second、override ToString()、以及一個靜態工廠方法 Create<TFirst, TSecond>(TFirst f, TSecond s)。再寫一個泛型方法 SwapPair<T1, T2>(Pair<T1,T2> p) 回傳新的 Pair<T2, T1>。",
+          "answer": "public class Pair<TFirst, TSecond>\n{\n    public TFirst First { get; }\n    public TSecond Second { get; }\n\n    public Pair(TFirst first, TSecond second)\n    {\n        First = first;\n        Second = second;\n    }\n\n    // 靜態工廠方法（利用型別推斷，呼叫時不需指定型別參數）\n    public static Pair<TFirst, TSecond> Create(TFirst first, TSecond second)\n        => new Pair<TFirst, TSecond>(first, second);\n\n    public override string ToString()\n        => $\"({First}, {Second})\";\n}\n\npublic static Pair<T2, T1> SwapPair<T1, T2>(Pair<T1, T2> p)\n{\n    return new Pair<T2, T1>(p.Second, p.First);\n}\n\n// 測試\nvar p1 = new Pair<string, int>(\"年齡\", 25);\nConsole.WriteLine(p1);  // (年齡, 25)\n\nvar p2 = Pair<int, bool>.Create(42, true);  // 工廠方法\nConsole.WriteLine(p2);  // (42, True)\n\nvar swapped = SwapPair(p1);  // 型別推斷為 Pair<int, string>\nConsole.WriteLine(swapped);  // (25, 年齡)",
+          "explanation": "多型別參數的泛型類別（TFirst, TSecond）是 Dictionary<TKey, TValue> 等標準類別的實作模式。靜態工廠方法讓呼叫端不需寫繁瑣的型別參數（Pair<string,int>.Create(\"x\", 1) vs new Pair<string,int>(\"x\", 1)）。"
+        },
+        {
+          "id": 5,
+          "type": "coding",
+          "question": "請寫一個帶有 new() 約束的泛型工廠方法 T CreateInstance<T>() where T : new()，以及一個泛型方法 List<T> CreateList<T>(int count) where T : new()，建立指定數量的 T 實例。再設計一個簡單類別 Point（有無參數建構子）測試。",
+          "answer": "// where T : new() 允許在泛型方法中呼叫 new T()\npublic static T CreateInstance<T>() where T : new()\n{\n    return new T();  // 沒有 new() 約束就無法這樣寫\n}\n\npublic static List<T> CreateList<T>(int count) where T : new()\n{\n    if (count < 0) throw new ArgumentOutOfRangeException(nameof(count));\n\n    List<T> list = new List<T>(count);\n    for (int i = 0; i < count; i++)\n    {\n        list.Add(new T());  // 每次建立新實例\n    }\n    return list;\n}\n\n// 測試用類別\npublic class Point\n{\n    public int X { get; set; }\n    public int Y { get; set; }\n\n    public Point() { X = 0; Y = 0; }  // 無參數建構子（new() 約束需要）\n    public Point(int x, int y) { X = x; Y = y; }\n\n    public override string ToString() => $\"({X}, {Y})\";\n}\n\n// 測試\nPoint p = CreateInstance<Point>();\nConsole.WriteLine(p);  // (0, 0)\n\nList<Point> points = CreateList<Point>(3);\npoints[0].X = 1; points[1].X = 2; points[2].X = 3;\npoints.ForEach(pt => Console.WriteLine(pt));  // (1,0) (2,0) (3,0)\n\n// int 也符合 new() 約束（值型別有預設建構子）\nList<int> nums = CreateList<int>(5);\nConsole.WriteLine(string.Join(\", \", nums));  // 0, 0, 0, 0, 0",
+          "explanation": "where T : new() 讓泛型內部可以寫 new T()，但要求 T 的無參數建構子必須是 public。值型別（int、struct）都隱含無參數建構子，符合 new() 約束。如果 T 只有帶參數的建構子（如 Point(int x, int y)），則不符合 new() 約束。"
+        },
+        {
+          "id": 6,
+          "type": "debugging",
+          "question": "以下泛型方法有 1 處錯誤，請找出並修正：",
+          "buggyCode": "// 想比較兩個值，回傳較大的那個\npublic static T Max<T>(T a, T b)\n{\n    // 錯誤：沒有型別約束，T 不一定支援 CompareTo()\n    if (a.CompareTo(b) >= 0)\n        return a;\n    return b;\n}\n\n// 呼叫\nConsole.WriteLine(Max(3, 5));\nConsole.WriteLine(Max(\"apple\", \"banana\"));",
+          "answer": "// [修正] 加上 where T : IComparable<T> 型別約束\npublic static T Max<T>(T a, T b) where T : IComparable<T>\n{\n    if (a.CompareTo(b) >= 0)\n        return a;\n    return b;\n}\n\n// 呼叫（不變）\nConsole.WriteLine(Max(3, 5));           // 5\nConsole.WriteLine(Max(\"apple\", \"banana\"));  // banana",
+          "explanation": "沒有型別約束時，T 被視為 object，object 沒有 CompareTo() 方法，導致 CS1061 編譯錯誤。加上 where T : IComparable<T> 告訴編譯器「T 一定有 CompareTo(T other) 方法」，方法內才能合法呼叫。這是泛型最常見的錯誤。"
+        },
+        {
+          "id": 7,
+          "type": "debugging",
+          "question": "以下泛型 Queue<T> 實作有 1 個邏輯錯誤，請找出並修正：",
+          "buggyCode": "public class Queue<T>\n{\n    private List<T> _items = new List<T>();\n\n    public bool IsEmpty => _items.Count == 0;\n\n    public void Enqueue(T item) => _items.Add(item);\n\n    public T Dequeue()\n    {\n        if (IsEmpty) throw new InvalidOperationException(\"Queue 為空\");\n        // 錯誤：Queue 應從前端（索引 0）取出，這裡卻從末端取\n        T item = _items[_items.Count - 1];\n        _items.RemoveAt(_items.Count - 1);\n        return item;\n    }\n\n    public T Peek()\n    {\n        if (IsEmpty) throw new InvalidOperationException(\"Queue 為空\");\n        return _items[_items.Count - 1];  // 同樣有問題\n    }\n}",
+          "answer": "public class Queue<T>\n{\n    private List<T> _items = new List<T>();\n\n    public bool IsEmpty => _items.Count == 0;\n\n    public void Enqueue(T item) => _items.Add(item);  // 加入末端（正確）\n\n    public T Dequeue()\n    {\n        if (IsEmpty) throw new InvalidOperationException(\"Queue 為空\");\n        // [修正] Queue 是 FIFO，從前端（索引 0）取出\n        T item = _items[0];\n        _items.RemoveAt(0);\n        return item;\n    }\n\n    public T Peek()\n    {\n        if (IsEmpty) throw new InvalidOperationException(\"Queue 為空\");\n        return _items[0];  // [修正] 查看前端\n    }\n}",
+          "explanation": "Queue（佇列）是 FIFO（先進先出）：Enqueue 從末端加入，Dequeue/Peek 從**前端**（索引 0）取出。原本程式碼從末端取出，實際上是 LIFO（Stack 的行為）。修正：取索引 0 的元素。注意 RemoveAt(0) 的時間複雜度是 O(n)（需移動所有元素），實際效能考量可改用 LinkedList<T>。"
+        },
+        {
+          "id": 8,
+          "type": "debugging",
+          "question": "以下泛型程式碼有 1 處錯誤（型別約束衝突），請找出並修正：",
+          "buggyCode": "// 想建立「只接受 class 型別且可排序」的泛型容器\npublic class SortedContainer<T> where T : struct, IComparable<T>\n{\n    private List<T> _items = new List<T>();\n\n    public void Add(T item) => _items.Add(item);\n\n    public T GetMax()\n    {\n        if (_items.Count == 0) throw new InvalidOperationException();\n        T max = _items[0];\n        foreach (T item in _items)\n            if (item.CompareTo(max) > 0) max = item;\n        return max;\n    }\n}\n\n// 想用 string（參考型別）\nvar container = new SortedContainer<string>();\ncontainer.Add(\"banana\");\ncontainer.Add(\"apple\");",
+          "answer": "// [修正] 將 struct 改為 class，或直接只保留 IComparable<T>\n// 若要接受 string 等參考型別，不能加 struct 約束\npublic class SortedContainer<T> where T : IComparable<T>  // 移除 struct\n{\n    private List<T> _items = new List<T>();\n\n    public void Add(T item) => _items.Add(item);\n\n    public T GetMax()\n    {\n        if (_items.Count == 0) throw new InvalidOperationException();\n        T max = _items[0];\n        foreach (T item in _items)\n            if (item.CompareTo(max) > 0) max = item;\n        return max;\n    }\n}\n\n// 現在 string（參考型別）可以使用\nvar container = new SortedContainer<string>();\ncontainer.Add(\"banana\");\ncontainer.Add(\"apple\");\nConsole.WriteLine(container.GetMax());  // banana",
+          "explanation": "where T : struct 限制 T 只能是**值型別**（int、double、自訂 struct），string 是參考型別，違反此約束導致 CS0452 編譯錯誤。若需同時接受值型別和參考型別，只用 IComparable<T> 約束即可（int、double、string 都實作了 IComparable<T>）。"
+        },
+        {
+          "id": 9,
+          "type": "multiple-choice",
+          "question": "以下哪個型別約束組合**正確**且**不會編譯錯誤**？",
+          "options": [
+            "A. where T : class, struct",
+            "B. where T : struct, new()",
+            "C. where T : int",
+            "D. where T : class, new(), IComparable"
+          ],
+          "answer": "D",
+          "explanation": "D 正確：class（參考型別）+ new()（有無參數建構子）+ IComparable（介面）可以組合。A 錯：class 和 struct 互斥，不能同時使用。B 有爭議：struct 隱含有無參數建構子，所以 struct 和 new() 組合在 C# 早期版本是多餘但合法，C# 10+ 中 struct 不一定有無參數建構子，此組合意義有所不同——但主要考點是 A 和 C 的錯誤。C 錯：不能對具體型別（int）使用約束，約束只能是 class、struct、new()、介面或基底類別。"
+        },
+        {
+          "id": 10,
+          "type": "multiple-choice",
+          "question": "以下關於 C# 泛型的敘述，何者**正確**？",
+          "options": [
+            "A. 泛型類別在 runtime 時所有型別參數都被替換為 object，與直接使用 object 效能相同",
+            "B. 泛型方法呼叫時一定要明確指定型別參數，例如 Max<int>(3, 5)",
+            "C. 值型別（如 int）使用泛型時，不會發生裝箱（boxing），效能優於非泛型的 object 集合",
+            "D. where T : new() 允許 T 使用任何建構子（含帶參數的）"
+          ],
+          "answer": "C",
+          "explanation": "C 正確：泛型對值型別會生成專屬的 IL 程式碼（如 Stack<int> 使用真實的 int，不裝箱），避免了 ArrayList 等非泛型集合中 int→object 的裝箱開銷。A 錯：對參考型別確實共用，但對值型別 JIT 會生成特化版本。B 錯：編譯器可以從引數推斷型別，Max(3, 5) 不需寫 Max<int>。D 錯：where T : new() 只允許**無參數**公開建構子，無法呼叫帶參數的建構子。"
+        }
+      ]
+    },
+    {
+      "id": "delegate-event",
+      "title": "委派與事件 (Delegate / Event)",
+      "content": "委派（delegate）是 C# 的「型別安全的函數指標」，可以把方法當成值來傳遞和呼叫，是 LINQ、事件系統、回呼（callback）的基礎。\n\n**delegate 宣告與使用**：\n```\npublic delegate int Calculator(int a, int b);  // 宣告委派型別\nCalculator add = (a, b) => a + b;             // 指派方法\nint result = add(3, 4);                        // 呼叫：result = 7\n```\n\n**多播委派（Multicast Delegate）**：用 `+=` 串接多個方法，呼叫時依序執行全部。`-=` 移除。有回傳值的多播委派只回傳最後一個方法的結果（考試常問）。\n\n**內建委派型別（不需自訂 delegate）**：\n- `Action`：無參數、無回傳值 → `Action<T>`、`Action<T1,T2>` 最多 16 個參數\n- `Func<TResult>`：有回傳值 → `Func<T,TResult>`（最後一個型別參數是回傳型別）\n- `Predicate<T>`：等同 `Func<T, bool>`，常用於過濾條件\n\n**Lambda 表達式**：`(params) => expression` 或 `(params) => { statements; }`。是匿名方法的簡化語法，常與委派和 LINQ 搭配。\n\n**event 關鍵字**：在 delegate 前加 `event` 後，外部類別只能用 `+=` 訂閱和 `-=` 取消訂閱，無法直接呼叫（invoke）或重新賦值（=）。這是封裝事件最重要的保護。\n\n**標準 EventHandler 模式**：\n```\npublic event EventHandler<MyEventArgs> SomethingHappened;\n// 觸發：SomethingHappened?.Invoke(this, new MyEventArgs(...));\n```\n`?.Invoke` 是 null 安全呼叫，避免沒有訂閱者時拋出 NullReferenceException。\n\n**考試重點**：delegate 宣告語法、多播委派行為、event 與 delegate 的差異、`?.Invoke` 安全呼叫、Action/Func 的型別參數含義。",
+      "codeExample": "// ── 1. 自訂 delegate ──\npublic delegate double MathOperation(double a, double b);\n\n// ── 2. 多播委派 ──\nAction<string> logger = msg => Console.WriteLine($\"[LOG1] {msg}\");\nlogger += msg => Console.WriteLine($\"[LOG2] {msg}\");  // 串接第二個方法\nlogger(\"系統啟動\");  // 兩個都會執行\nlogger -= msg => Console.WriteLine($\"[LOG2] {msg}\");  // 移除（注意：lambda 移除較麻煩）\n\n// ── 3. Action / Func / Predicate ──\nAction<int, int> printSum = (a, b) => Console.WriteLine(a + b);\nFunc<string, int> strLen = s => s.Length;  // 回傳 int\nPredicate<int> isEven = n => n % 2 == 0;\n\nprintSum(3, 4);          // 7\nConsole.WriteLine(strLen(\"hello\"));  // 5\nConsole.WriteLine(isEven(4));        // True\n\n// ── 4. 標準 EventHandler 模式 ──\npublic class TemperatureChangedEventArgs : EventArgs\n{\n    public double OldTemp { get; }\n    public double NewTemp { get; }\n    public TemperatureChangedEventArgs(double old, double @new)\n    { OldTemp = old; NewTemp = @new; }\n}\n\npublic class Thermometer\n{\n    private double _temp;\n    // event 保護：外部只能 += / -=，不能直接呼叫或 =\n    public event EventHandler<TemperatureChangedEventArgs>? TemperatureChanged;\n\n    public double Temperature\n    {\n        get => _temp;\n        set\n        {\n            if (value != _temp)\n            {\n                double old = _temp;\n                _temp = value;\n                // ?. 確保有訂閱者才觸發，避免 NullReferenceException\n                TemperatureChanged?.Invoke(this, new TemperatureChangedEventArgs(old, value));\n            }\n        }\n    }\n}\n\n// 訂閱事件\nThermometer t = new Thermometer();\nt.TemperatureChanged += (sender, e)\n    => Console.WriteLine($\"溫度從 {e.OldTemp}°C 變為 {e.NewTemp}°C\");\nt.Temperature = 36.5;  // 觸發事件",
+      "keyPoints": [
+        "delegate 宣告語法：public delegate 回傳型別 委派名稱(參數列)；呼叫與一般方法相同",
+        "多播委派用 += 串接方法，呼叫時全部依序執行；有回傳值時只取**最後一個**方法的回傳值",
+        "event 修飾 delegate 後，外部只能 += / -=，不能 = 賦值或直接 .Invoke()，是封裝保護",
+        "觸發事件用 EventName?.Invoke(this, args)，?.運算子確保 null 安全（無訂閱者時不拋例外）",
+        "Func<T1, T2, TResult> 的最後一個型別參數是回傳型別；Action 無回傳值；Predicate<T> 等同 Func<T, bool>"
+      ],
+      "exercises": [
+        {
+          "id": 1,
+          "type": "coding",
+          "question": "請宣告一個 delegate StringProcessor，簽章為接收 string 回傳 string。用此委派實作三個操作：(1) 轉大寫；(2) 去除前後空白；(3) 反轉字串。然後宣告一個多播委派將三個操作串接（注意多播有回傳值時只取最後一個），最後改用 Func<string, string> 改寫。",
+          "answer": "// 自訂委派\npublic delegate string StringProcessor(string input);\n\n// 三個操作方法\npublic static string ToUpper(string s) => s.ToUpper();\npublic static string Trim(string s) => s.Trim();\npublic static string Reverse(string s)\n    => new string(s.ToCharArray().Reverse().ToArray());\n\n// 使用\nStringProcessor upper = ToUpper;\nStringProcessor trim = Trim;\nStringProcessor reverse = Reverse;\n\nConsole.WriteLine(upper(\"hello\"));   // HELLO\nConsole.WriteLine(trim(\"  hi  \"));   // hi\nConsole.WriteLine(reverse(\"abc\"));   // cba\n\n// 多播委派（有回傳值時只取最後一個結果）\nStringProcessor multi = upper;\nmulti += trim;\nmulti += reverse;\nConsole.WriteLine(multi(\" hello \"));  // \" hello \"→最後執行 Reverse→\" olleh \"\n\n// 改用 Func<string, string>\nFunc<string, string> fUpper = s => s.ToUpper();\nFunc<string, string> fTrim  = s => s.Trim();\nFunc<string, string> fRev   = s => new string(s.Reverse().ToArray());\nConsole.WriteLine(fRev(fTrim(fUpper(\" hello \"))));  // 串接呼叫 → \"OLLEH\"",
+          "explanation": "自訂 delegate 和 Func 功能等價，但 Func 不需額外宣告型別，更簡潔。多播委派有回傳值時，只有最後一個方法的回傳值會被使用，前面方法的回傳值被丟棄——這是考試常出的陷阱題，通常有回傳值時不建議使用多播委派。"
+        },
+        {
+          "id": 2,
+          "type": "coding",
+          "question": "請寫一個 ProcessNumbers 方法，接受 int[] 陣列和 Func<int, bool> 條件（過濾用）、Func<int, int> 轉換（每個元素的變換）、Action<int> 輸出，方法內先過濾、再轉換、再呼叫 Action 輸出。用 lambda 分別測試：(1) 取偶數乘以 2；(2) 取大於 5 的數平方。",
+          "answer": "public static void ProcessNumbers(\n    int[] numbers,\n    Func<int, bool> filter,\n    Func<int, int> transform,\n    Action<int> output)\n{\n    foreach (int n in numbers)\n    {\n        if (filter(n))        // 過濾\n        {\n            int result = transform(n);  // 轉換\n            output(result);             // 輸出\n        }\n    }\n}\n\n// 測試\nint[] nums = { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10 };\n\n// (1) 取偶數乘以 2\nConsole.WriteLine(\"偶數 × 2：\");\nProcessNumbers(\n    nums,\n    n => n % 2 == 0,    // Func<int, bool> 過濾\n    n => n * 2,          // Func<int, int> 轉換\n    n => Console.Write(n + \" \")  // Action<int> 輸出\n);\n// 輸出：4 8 12 16 20\n\nConsole.WriteLine();\n\n// (2) 大於 5 的數平方\nConsole.WriteLine(\"大於5的平方：\");\nProcessNumbers(\n    nums,\n    n => n > 5,\n    n => n * n,\n    n => Console.Write(n + \" \")\n);\n// 輸出：36 49 64 81 100",
+          "explanation": "這個模式是「高階函式（Higher-order function）」：方法接受其他方法作為參數。Func<int, bool> 對應 Predicate<int>，Func<int, int> 是轉換，Action<int> 是副作用操作。這也是 LINQ 的 Where/Select/ForEach 的底層概念。"
+        },
+        {
+          "id": 3,
+          "type": "coding",
+          "question": "請實作一個 Button 類別，模擬 UI 按鈕的事件系統：(1) 宣告自訂 EventArgs 子類別 ButtonClickEventArgs（含 ClickCount 屬性）；(2) Button 有 event EventHandler<ButtonClickEventArgs> Clicked；(3) 有 Click() 方法累計點擊次數並觸發事件；(4) 寫訂閱者模擬按下 3 次按鈕並印出。",
+          "answer": "// 自訂 EventArgs\npublic class ButtonClickEventArgs : EventArgs\n{\n    public int ClickCount { get; }\n    public DateTime ClickTime { get; }\n\n    public ButtonClickEventArgs(int clickCount)\n    {\n        ClickCount = clickCount;\n        ClickTime = DateTime.Now;\n    }\n}\n\n// 事件發佈者（Publisher）\npublic class Button\n{\n    private int _clickCount = 0;\n    public string Name { get; set; }\n\n    public Button(string name) { Name = name; }\n\n    // event 修飾：外部只能 += / -=\n    public event EventHandler<ButtonClickEventArgs>? Clicked;\n\n    public void Click()\n    {\n        _clickCount++;\n        // ?. 避免 Clicked 為 null 時拋出例外\n        Clicked?.Invoke(this, new ButtonClickEventArgs(_clickCount));\n    }\n}\n\n// 事件訂閱者（Subscriber）\npublic class ClickLogger\n{\n    public void OnButtonClicked(object? sender, ButtonClickEventArgs e)\n    {\n        Button? btn = sender as Button;\n        Console.WriteLine($\"[{e.ClickTime:HH:mm:ss}] {btn?.Name} 被點擊第 {e.ClickCount} 次\");\n    }\n}\n\n// 測試\nButton btn = new Button(\"確認\");\nClickLogger logger = new ClickLogger();\n\nbtn.Clicked += logger.OnButtonClicked;  // 訂閱\nbtn.Clicked += (s, e) => Console.WriteLine($\"  → 匿名訂閱者：總點擊 {e.ClickCount}\");\n\nbtn.Click();  // 點擊 3 次\nbtn.Click();\nbtn.Click();\n\nbtn.Clicked -= logger.OnButtonClicked;  // 取消訂閱\nbtn.Click();  // 只有匿名訂閱者收到",
+          "explanation": "標準事件模式：(1) EventArgs 子類別傳遞事件資料；(2) event EventHandler<T> 宣告（?讓它可為null）；(3) ?.Invoke() 安全觸發；(4) 訂閱者方法簽章必須是 (object? sender, TEventArgs e)。sender 是觸發者，用 as 安全轉型取得具體類別。"
+        },
+        {
+          "id": 4,
+          "type": "coding",
+          "question": "請實作一個 EventBroker（事件仲介）類別，可以讓不相關的類別透過委派溝通：(1) 有 Action<string> MessageReceived 委派屬性（非 event）；(2) OrderService 在下單時觸發通知；(3) EmailService 和 SMSService 分別訂閱。展示多播委派同時通知多個訂閱者。",
+          "answer": "// 事件仲介（不用 event，直接用 Action 委派）\npublic class EventBroker\n{\n    // 多播 Action：可同時通知多個訂閱者\n    public Action<string>? OnOrderPlaced { get; set; }\n\n    public void NotifyOrderPlaced(string orderInfo)\n    {\n        OnOrderPlaced?.Invoke(orderInfo);\n    }\n}\n\npublic class OrderService\n{\n    private readonly EventBroker _broker;\n    private int _orderCount = 0;\n\n    public OrderService(EventBroker broker) { _broker = broker; }\n\n    public void PlaceOrder(string product)\n    {\n        _orderCount++;\n        Console.WriteLine($\"[訂單服務] 建立訂單 #{_orderCount}：{product}\");\n        _broker.NotifyOrderPlaced($\"訂單 #{_orderCount} - {product}\");\n    }\n}\n\npublic class EmailService\n{\n    public void SendOrderConfirmation(string orderInfo)\n        => Console.WriteLine($\"[Email] 寄送確認信：{orderInfo}\");\n}\n\npublic class SmsService\n{\n    public void SendSms(string orderInfo)\n        => Console.WriteLine($\"[SMS] 發送簡訊：{orderInfo}\");\n}\n\n// 組裝\nEventBroker broker = new EventBroker();\nOrderService orders = new OrderService(broker);\nEmailService email = new EmailService();\nSmsService sms = new SmsService();\n\n// 多播：兩個服務都訂閱\nbroker.OnOrderPlaced += email.SendOrderConfirmation;\nbroker.OnOrderPlaced += sms.SendSms;\nbroker.OnOrderPlaced += info => Console.WriteLine($\"[Log] {info}\");  // lambda 也可以\n\norders.PlaceOrder(\"筆記型電腦\");\norders.PlaceOrder(\"滑鼠\");",
+          "explanation": "這個模式展示委派作為「觀察者模式（Observer Pattern）」的實作。Action 多播委派讓多個訂閱者同時收到通知。與 event 的差異：Action 屬性外部可以直接呼叫（broker.OnOrderPlaced(\"test\")），而 event 不行。正式設計應用 event 關鍵字保護。"
+        },
+        {
+          "id": 5,
+          "type": "coding",
+          "question": "請寫一個 SortHelper 類別，包含一個泛型方法 Sort<T>(T[] arr, Func<T, T, int> comparer)，使用氣泡排序依照傳入的比較委派排序。測試：(1) int[] 由小到大；(2) string[] 依長度排序；(3) 自訂類別 Person[] 依年齡由大到小。",
+          "answer": "public static void Sort<T>(T[] arr, Func<T, T, int> comparer)\n{\n    // 氣泡排序\n    for (int i = 0; i < arr.Length - 1; i++)\n    {\n        for (int j = 0; j < arr.Length - 1 - i; j++)\n        {\n            if (comparer(arr[j], arr[j + 1]) > 0)  // 委派決定排序邏輯\n            {\n                T temp = arr[j];\n                arr[j] = arr[j + 1];\n                arr[j + 1] = temp;\n            }\n        }\n    }\n}\n\npublic class Person\n{\n    public string Name { get; set; }\n    public int Age { get; set; }\n    public Person(string name, int age) { Name = name; Age = age; }\n    public override string ToString() => $\"{Name}({Age}歲)\";\n}\n\n// 測試\nint[] nums = { 5, 2, 8, 1, 9 };\nSort(nums, (a, b) => a - b);  // 由小到大\nConsole.WriteLine(string.Join(\", \", nums));  // 1, 2, 5, 8, 9\n\nstring[] words = { \"banana\", \"fig\", \"apple\", \"kiwi\" };\nSort(words, (a, b) => a.Length - b.Length);  // 依長度\nConsole.WriteLine(string.Join(\", \", words));  // fig, kiwi, apple, banana\n\nPerson[] people = { new Person(\"小明\", 25), new Person(\"小華\", 30), new Person(\"小英\", 20) };\nSort(people, (a, b) => b.Age - a.Age);  // 由大到小（b-a 反向）\nConsole.WriteLine(string.Join(\", \", people as object[]));  // 小華(30), 小明(25), 小英(20)",
+          "explanation": "Func<T, T, int> comparer 是比較器委派：回傳正數則前者排後面，負數則前者排前面，0 則相等。這正是 IComparer<T>.Compare 的邏輯。a - b 升序，b - a 降序。將排序邏輯抽離為委派參數，使方法本身與排序規則解耦，這是「策略模式（Strategy Pattern）」的體現。"
+        },
+        {
+          "id": 6,
+          "type": "coding",
+          "question": "請用 event 實作一個「股票價格警示系統」：StockMonitor 類別有 decimal Price 屬性；當價格超過設定的高價警戒線或低於低價警戒線時，分別觸發 PriceRaisedAlert 和 PriceDroppedAlert 事件。自訂 PriceAlertEventArgs 包含 OldPrice、NewPrice、AlertType（\"HIGH\"/\"LOW\"）。",
+          "answer": "public class PriceAlertEventArgs : EventArgs\n{\n    public decimal OldPrice { get; }\n    public decimal NewPrice { get; }\n    public string AlertType { get; }  // \"HIGH\" 或 \"LOW\"\n\n    public PriceAlertEventArgs(decimal old, decimal @new, string alertType)\n    {\n        OldPrice = old; NewPrice = @new; AlertType = alertType;\n    }\n}\n\npublic class StockMonitor\n{\n    private decimal _price;\n    public decimal HighThreshold { get; set; }  // 高價警戒\n    public decimal LowThreshold { get; set; }   // 低價警戒\n    public string Symbol { get; }\n\n    public event EventHandler<PriceAlertEventArgs>? PriceRaisedAlert;\n    public event EventHandler<PriceAlertEventArgs>? PriceDroppedAlert;\n\n    public StockMonitor(string symbol, decimal high, decimal low)\n    {\n        Symbol = symbol; HighThreshold = high; LowThreshold = low;\n    }\n\n    public decimal Price\n    {\n        get => _price;\n        set\n        {\n            decimal old = _price;\n            _price = value;\n\n            if (value > HighThreshold)\n                PriceRaisedAlert?.Invoke(this,\n                    new PriceAlertEventArgs(old, value, \"HIGH\"));\n            else if (value < LowThreshold)\n                PriceDroppedAlert?.Invoke(this,\n                    new PriceAlertEventArgs(old, value, \"LOW\"));\n        }\n    }\n}\n\n// 測試\nStockMonitor tsmc = new StockMonitor(\"2330\", 1000m, 800m);\n\ntsmc.PriceRaisedAlert  += (s, e) =>\n    Console.WriteLine($\"⚠ 高價警示！{((StockMonitor)s).Symbol}：{e.OldPrice}→{e.NewPrice}\");\ntsmc.PriceDroppedAlert += (s, e) =>\n    Console.WriteLine($\"⚠ 低價警示！{((StockMonitor)s).Symbol}：{e.OldPrice}→{e.NewPrice}\");\n\ntsmc.Price = 950m;   // 無警示\ntsmc.Price = 1050m;  // 觸發 PriceRaisedAlert\ntsmc.Price = 790m;   // 觸發 PriceDroppedAlert",
+          "explanation": "宣告多個 event 欄位時每個都要加 event 關鍵字和 ? nullable。觸發前的 ?.Invoke() 是必要的 null 安全寫法，等同於先 if(event != null) 再 event.Invoke()。注意 sender 是 object 型別，需要轉型才能取得具體類別的屬性。"
+        },
+        {
+          "id": 7,
+          "type": "debugging",
+          "question": "以下程式碼有 1 處錯誤（event 的存取限制），請找出並修正：",
+          "buggyCode": "public class Alarm\n{\n    public event Action AlarmTriggered;\n\n    public void TriggerAlarm()\n    {\n        AlarmTriggered?.Invoke();\n    }\n}\n\npublic class SecuritySystem\n{\n    public void Test()\n    {\n        Alarm alarm = new Alarm();\n        alarm.AlarmTriggered += () => Console.WriteLine(\"警報響了！\");\n\n        // 外部嘗試直接呼叫 event\n        alarm.AlarmTriggered.Invoke();  // 錯誤！\n    }\n}",
+          "answer": "public class Alarm\n{\n    public event Action? AlarmTriggered;\n\n    public void TriggerAlarm()\n    {\n        AlarmTriggered?.Invoke();\n    }\n}\n\npublic class SecuritySystem\n{\n    public void Test()\n    {\n        Alarm alarm = new Alarm();\n        alarm.AlarmTriggered += () => Console.WriteLine(\"警報響了！\");\n\n        // [修正] 外部不能直接呼叫 event，改為呼叫類別提供的公開方法\n        alarm.TriggerAlarm();  // 正確：透過類別內部的方法觸發\n    }\n}",
+          "explanation": "event 的核心保護：外部類別**不能**直接呼叫（.Invoke()）或重新賦值（=），只能 += 訂閱和 -= 取消訂閱。觸發事件只能由宣告事件的類別（Alarm）自己在內部呼叫。這樣確保事件的觸發時機由發佈者控制，訂閱者無法擅自觸發。"
+        },
+        {
+          "id": 8,
+          "type": "debugging",
+          "question": "以下委派程式碼有 2 處錯誤，請找出並修正：",
+          "buggyCode": "public delegate int Transform(int value);\n\npublic class Program\n{\n    public static void Main()\n    {\n        // 錯誤 1：委派簽章不符（lambda 有兩個參數，但 Transform 只接受一個）\n        Transform doubler = (x, y) => x * 2;\n\n        // 錯誤 2：未初始化就呼叫委派（可能 NullReferenceException）\n        Transform nullDelegate;\n        int result = nullDelegate(5);\n\n        Console.WriteLine(doubler(5));\n    }\n}",
+          "answer": "public delegate int Transform(int value);\n\npublic class Program\n{\n    public static void Main()\n    {\n        // [修正 1] Lambda 只能有一個參數，符合 Transform 簽章\n        Transform doubler = x => x * 2;\n\n        // [修正 2] 初始化委派後再呼叫，或加上 null 檢查\n        Transform nullDelegate = x => x * 3;  // 方式一：直接指派\n        // 方式二（如果允許為 null）：Transform? nullDelegate = null; int result = nullDelegate?.Invoke(5) ?? 0;\n        int result = nullDelegate(5);\n\n        Console.WriteLine(doubler(5));  // 10\n        Console.WriteLine(result);      // 15\n    }\n}",
+          "explanation": "Bug 1：Lambda 的參數數量必須與委派宣告完全一致。Transform 只有一個 int 參數，lambda (x, y) => 有兩個參數，導致 CS1593 錯誤。Bug 2：委派變數未初始化（預設 null），直接呼叫會 NullReferenceException。對一般委派應在呼叫前確保不為 null；event 用 ?.Invoke() 安全呼叫。"
+        },
+        {
+          "id": 9,
+          "type": "debugging",
+          "question": "以下事件訂閱程式碼有 1 處設計問題（重複訂閱），請找出並說明修正方式：",
+          "buggyCode": "public class Counter\n{\n    public event Action<int>? CountChanged;\n    private int _count = 0;\n\n    public void Increment()\n    {\n        _count++;\n        CountChanged?.Invoke(_count);\n    }\n}\n\npublic class Display\n{\n    private Counter _counter;\n\n    public Display(Counter counter)\n    {\n        _counter = counter;\n        // 問題：每次建立 Display 都訂閱，若 Display 被重複建立就重複訂閱\n    }\n\n    public void Subscribe()\n    {\n        _counter.CountChanged += OnCountChanged;\n        _counter.CountChanged += OnCountChanged;  // 重複訂閱同一方法！\n    }\n\n    private void OnCountChanged(int count)\n        => Console.WriteLine($\"計數：{count}\");\n}",
+          "answer": "public class Counter\n{\n    public event Action<int>? CountChanged;\n    private int _count = 0;\n\n    public void Increment()\n    {\n        _count++;\n        CountChanged?.Invoke(_count);\n    }\n}\n\npublic class Display\n{\n    private Counter _counter;\n\n    public Display(Counter counter)\n    {\n        _counter = counter;\n    }\n\n    public void Subscribe()\n    {\n        // [修正] 先取消再訂閱，確保只訂閱一次\n        _counter.CountChanged -= OnCountChanged;  // 先移除（若不存在也無害）\n        _counter.CountChanged += OnCountChanged;  // 再加入\n    }\n\n    // 或在需要的地方提供明確的取消訂閱方法\n    public void Unsubscribe()\n    {\n        _counter.CountChanged -= OnCountChanged;\n    }\n\n    private void OnCountChanged(int count)\n        => Console.WriteLine($\"計數：{count}\");\n}",
+          "explanation": "多播委派對同一方法 += 兩次，該方法就會被呼叫兩次（印出兩行）。防止重複訂閱的標準模式：先 -= 再 +=，因為對未訂閱的方法執行 -= 不會拋出例外（靜默忽略）。另一個良好實踐是在物件銷毀時（Dispose 或解構時）明確執行 -= 取消所有訂閱，避免記憶體洩漏。"
+        },
+        {
+          "id": 10,
+          "type": "debugging",
+          "question": "以下程式碼有 1 處錯誤（event 從外部被 = 重新賦值），請找出並修正：",
+          "buggyCode": "public class Publisher\n{\n    public event Action? DataReady;\n\n    public void Publish()\n    {\n        DataReady?.Invoke();\n    }\n}\n\npublic class BadSubscriber\n{\n    public void Setup(Publisher pub)\n    {\n        // 先正常訂閱\n        pub.DataReady += () => Console.WriteLine(\"訂閱者 A\");\n\n        // 問題：用 = 直接賦值，會把之前所有訂閱者清掉！\n        pub.DataReady = () => Console.WriteLine(\"訂閱者 B\");\n    }\n}",
+          "answer": "public class Publisher\n{\n    public event Action? DataReady;\n\n    public void Publish()\n    {\n        DataReady?.Invoke();\n    }\n}\n\npublic class GoodSubscriber\n{\n    public void Setup(Publisher pub)\n    {\n        pub.DataReady += () => Console.WriteLine(\"訂閱者 A\");\n\n        // [修正] 用 += 追加，不可用 = 覆蓋\n        pub.DataReady += () => Console.WriteLine(\"訂閱者 B\");\n        // 若是 event，外部用 = 賦值會直接 CS0070 編譯錯誤\n        // 這道題主要展示：event 的保護就是防止這種情況\n    }\n}",
+          "explanation": "這道題其實是設計要展示 event 的保護價值：若 DataReady 只是普通的 Action? 欄位（沒加 event），外部可以用 = 覆蓋所有訂閱者，這是危險的。加上 event 後，外部用 = 賦值會產生 CS0070 編譯錯誤「事件只可以出現在 += 或 -= 的左邊」。修正方式：一律用 += 追加訂閱。"
+        },
+        {
+          "id": 11,
+          "type": "multiple-choice",
+          "question": "關於 C# 的 event 和 delegate，以下敘述何者**正確**？",
+          "options": [
+            "A. event 和 delegate 完全相同，event 只是 delegate 的別名",
+            "B. 加上 event 修飾後，外部類別無法直接呼叫（Invoke）事件，只能用 += 和 -=",
+            "C. event 可以在外部類別用 = 賦值，但不能用 += 追加",
+            "D. 沒有訂閱者時呼叫 event.Invoke() 不會發生任何錯誤"
+          ],
+          "answer": "B",
+          "explanation": "B 正確：event 的核心保護是「外部只能 += 和 -=」，不能直接 .Invoke() 觸發，也不能用 = 重新賦值。A 錯：event 是對 delegate 的封裝，增加存取限制。C 錯：剛好相反。D 錯：沒有訂閱者時 event 值為 null，直接 .Invoke() 會拋出 NullReferenceException，這就是為什麼要用 ?.Invoke() 的原因。"
+        },
+        {
+          "id": 12,
+          "type": "multiple-choice",
+          "question": "以下關於多播委派（Multicast Delegate）的敘述，何者**正確**？",
+          "options": [
+            "A. 多播委派只能串接靜態方法，不能串接實例方法",
+            "B. 若多播委派有回傳值，呼叫時會取得所有方法回傳值的總和",
+            "C. 多播委派有回傳值時，只取最後一個被呼叫方法的回傳值，前面的回傳值被丟棄",
+            "D. 使用 -= 移除方法時，若該方法不在委派鏈中，會拋出 ArgumentException"
+          ],
+          "answer": "C",
+          "explanation": "C 正確：多播委派依序執行所有方法，但若有回傳值，只有最後一個方法的回傳值被保留，其餘被丟棄。這是為什麼有回傳值的委派通常不建議使用多播的原因。A 錯：靜態方法和實例方法都可以。B 錯：不是總和，只取最後一個。D 錯：對不存在的方法執行 -= 不會拋出例外，靜默忽略。"
+        }
+      ]
+    },
+    {
+      "id": "linq",
+      "title": "LINQ 查詢語法",
+      "content": "LINQ（Language Integrated Query）讓 C# 能以統一語法查詢各種資料來源（集合、XML、資料庫）。考試以「方法語法（Method Syntax）」為主，需熟悉各運算子的用途與組合。\n\n**過濾與投影**：\n- `Where(predicate)`：過濾，保留符合條件的元素\n- `Select(selector)`：投影，將每個元素轉換成新形式\n- `SelectMany(selector)`：將巢狀集合展平成單一集合\n\n**排序**：\n- `OrderBy(key)` / `OrderByDescending(key)`：主要排序\n- `ThenBy(key)` / `ThenByDescending(key)`：次要排序（接在 OrderBy 後）\n\n**分組與聚合**：\n- `GroupBy(key)`：依 key 分組，回傳 IGrouping<TKey, TElement>\n- `Count()` / `Sum(selector)` / `Min()` / `Max()` / `Average()`\n- `Aggregate(seed, func)`：自訂累積邏輯\n\n**查找**：\n- `First(predicate)` / `FirstOrDefault(predicate)`：找第一個，找不到 First 拋例外，FirstOrDefault 回傳預設值\n- `Single()` / `SingleOrDefault()`：確保只有一個符合，多個則拋例外\n- `Any(predicate)` / `All(predicate)`：是否有任何/全部符合\n\n**聯結**：\n- `Join(inner, outerKey, innerKey, resultSelector)`：INNER JOIN\n- `GroupJoin(inner, outerKey, innerKey, resultSelector)`：LEFT OUTER JOIN\n\n**集合操作**：`Distinct()`、`Union()`、`Intersect()`、`Except()`\n\n**分頁**：`Skip(n).Take(n)` — 常用於分頁查詢\n\n**延遲執行（Deferred Execution）**：LINQ 查詢在定義時**不會立刻執行**，只有在迭代（foreach、ToList()、Count() 等）時才真正執行。若查詢定義後修改了來源集合，會影響查詢結果。呼叫 `ToList()` / `ToArray()` 可立即執行並快取結果。",
+      "codeExample": "// 測試資料\nvar students = new List<Student>\n{\n    new Student { Name=\"小明\", Score=85, Dept=\"資工\" },\n    new Student { Name=\"小華\", Score=92, Dept=\"資管\" },\n    new Student { Name=\"小英\", Score=78, Dept=\"資工\" },\n    new Student { Name=\"小強\", Score=92, Dept=\"資管\" },\n    new Student { Name=\"小美\", Score=65, Dept=\"資工\" }\n};\n\n// ── Where + Select ──\nvar highScorers = students\n    .Where(s => s.Score >= 80)\n    .Select(s => new { s.Name, s.Score })  // 匿名型別投影\n    .OrderByDescending(s => s.Score);\n\n// ── GroupBy ──\nvar byDept = students\n    .GroupBy(s => s.Dept)\n    .Select(g => new\n    {\n        Dept = g.Key,\n        Count = g.Count(),\n        Avg = g.Average(s => s.Score),\n        Best = g.Max(s => s.Score)\n    });\n\n// ── Join ──\nvar courses = new[] { new { Dept=\"資工\", Course=\"演算法\" }, new { Dept=\"資管\", Course=\"資料庫\" } };\nvar deptCourses = students\n    .Join(courses,\n        s => s.Dept,          // 外部索引鍵\n        c => c.Dept,          // 內部索引鍵\n        (s, c) => new { s.Name, c.Course });\n\n// ── Any / All / Count ──\nbool anyFail  = students.Any(s => s.Score < 60);    // false\nbool allPass  = students.All(s => s.Score >= 60);   // true\nint csCount   = students.Count(s => s.Dept == \"資工\"); // 3\n\n// ── Skip / Take 分頁 ──\nint page = 1, pageSize = 2;\nvar paged = students\n    .OrderBy(s => s.Name)\n    .Skip((page - 1) * pageSize)\n    .Take(pageSize);",
+      "keyPoints": [
+        "Where 過濾、Select 投影、OrderBy 排序、GroupBy 分組是考試核心四運算",
+        "First() 找不到拋 InvalidOperationException；FirstOrDefault() 找不到回傳 null/預設值（較安全）",
+        "Single() 確保只有一個符合結果，0 個或 2+ 個都拋例外；考試常考何時用 First vs Single",
+        "延遲執行：LINQ 查詢定義時不執行，迭代或 ToList()/ToArray() 時才執行，是常見 bug 來源",
+        "SelectMany 展平巢狀集合：students.SelectMany(s => s.Courses) 把每個學生的課程清單合併成一個大清單"
+      ],
+      "exercises": [
+        {
+          "id": 1,
+          "type": "coding",
+          "question": "有以下 Product 類別：int Id、string Name、decimal Price、string Category。請用 LINQ 方法語法完成：(1) 取出 Category 為 \"電子\" 且 Price < 10000 的產品名稱清單（按價格升序）；(2) 取出所有 Category 的不重複清單（排序）；(3) 計算每個 Category 的平均價格（Dictionary<string, decimal>）。",
+          "answer": "public class Product\n{\n    public int Id { get; set; }\n    public string Name { get; set; } = \"\";\n    public decimal Price { get; set; }\n    public string Category { get; set; } = \"\";\n}\n\nvar products = new List<Product>\n{\n    new Product { Id=1, Name=\"筆電\",   Price=35000, Category=\"電子\" },\n    new Product { Id=2, Name=\"滑鼠\",   Price=800,   Category=\"電子\" },\n    new Product { Id=3, Name=\"辦公桌\", Price=5000,  Category=\"家具\" },\n    new Product { Id=4, Name=\"鍵盤\",   Price=2000,  Category=\"電子\" },\n    new Product { Id=5, Name=\"椅子\",   Price=3500,  Category=\"家具\" }\n};\n\n// (1) 電子類且價格 < 10000，按價格升序，只要名稱\nList<string> cheapElectronics = products\n    .Where(p => p.Category == \"電子\" && p.Price < 10000)\n    .OrderBy(p => p.Price)\n    .Select(p => p.Name)\n    .ToList();\n// 結果：[\"滑鼠\", \"鍵盤\"]\n\n// (2) 所有 Category 不重複，排序\nList<string> categories = products\n    .Select(p => p.Category)\n    .Distinct()\n    .OrderBy(c => c)\n    .ToList();\n// 結果：[\"家具\", \"電子\"]\n\n// (3) 每個 Category 的平均價格\nDictionary<string, decimal> avgByCategory = products\n    .GroupBy(p => p.Category)\n    .ToDictionary(\n        g => g.Key,\n        g => g.Average(p => p.Price));\n// 結果：{ \"電子\": 12600, \"家具\": 4250 }",
+          "explanation": "Where + OrderBy + Select 是最常見的 LINQ 鏈。Distinct() 去重要放在 Select 之後（先投影再去重）。GroupBy + ToDictionary 是將分組結果轉成字典的標準模式：ToDictionary(g => g.Key, g => 聚合值)。"
+        },
+        {
+          "id": 2,
+          "type": "coding",
+          "question": "給定 List<string> words（含重複單字），用 LINQ 方法語法完成：(1) 找出長度 > 4 的單字，按長度降序再按字母升序排列；(2) 統計每個單字出現次數（Dictionary<string, int>），取出出現次數 >= 2 的；(3) 將所有單字轉大寫並去重後，組成以逗號分隔的字串。",
+          "answer": "var words = new List<string>\n    { \"apple\", \"banana\", \"apple\", \"cherry\", \"fig\", \"banana\", \"date\", \"elderberry\" };\n\n// (1) 長度 > 4，按長度降序、字母升序（ThenBy）\nvar longWords = words\n    .Where(w => w.Length > 4)\n    .OrderByDescending(w => w.Length)\n    .ThenBy(w => w)  // 次要排序\n    .Distinct()      // 去重\n    .ToList();\n// [\"elderberry\", \"banana\", \"cherry\", \"apple\"]\n\n// (2) 統計出現次數 >= 2\nDictionary<string, int> wordCount = words\n    .GroupBy(w => w)\n    .Where(g => g.Count() >= 2)  // 過濾在 GroupBy 之後\n    .ToDictionary(g => g.Key, g => g.Count());\n// { \"apple\": 2, \"banana\": 2 }\n\n// (3) 大寫去重後用逗號連接\nstring result = words\n    .Select(w => w.ToUpper())\n    .Distinct()\n    .OrderBy(w => w)\n    .Aggregate((current, next) => current + \", \" + next);\n// 或更簡潔：\nstring result2 = string.Join(\", \", words.Select(w => w.ToUpper()).Distinct().OrderBy(w => w));\nConsole.WriteLine(result2);",
+          "explanation": "ThenBy 必須接在 OrderBy/OrderByDescending 之後，不能單獨使用。GroupBy + Where 的模式是「先分組、再過濾組」。Aggregate((acc, cur) => acc + sep + cur) 是 string.Join 的 LINQ 等價寫法，但 string.Join 更簡潔，考試兩種都要會。"
+        },
+        {
+          "id": 3,
+          "type": "coding",
+          "question": "用 LINQ GroupBy 對以下學生成績資料進行分析：List<(string Name, string Subject, int Score)>。要求：(1) 計算每個學生的平均分和最高分；(2) 計算每科的平均分、通過人數（>=60）；(3) 找出平均分最高的學生姓名（使用 OrderByDescending + First）。",
+          "answer": "var grades = new List<(string Name, string Subject, int Score)>\n{\n    (\"小明\", \"數學\", 85), (\"小明\", \"英文\", 72), (\"小明\", \"程式\", 90),\n    (\"小華\", \"數學\", 60), (\"小華\", \"英文\", 88), (\"小華\", \"程式\", 75),\n    (\"小英\", \"數學\", 95), (\"小英\", \"英文\", 80), (\"小英\", \"程式\", 68)\n};\n\n// (1) 每個學生的平均分和最高分\nvar studentStats = grades\n    .GroupBy(g => g.Name)\n    .Select(grp => new\n    {\n        Name    = grp.Key,\n        Average = Math.Round(grp.Average(g => g.Score), 1),\n        Highest = grp.Max(g => g.Score)\n    })\n    .OrderByDescending(s => s.Average);\n\nforeach (var s in studentStats)\n    Console.WriteLine($\"{s.Name}：平均 {s.Average}，最高 {s.Highest}\");\n\n// (2) 每科的平均分和通過人數\nvar subjectStats = grades\n    .GroupBy(g => g.Subject)\n    .Select(grp => new\n    {\n        Subject  = grp.Key,\n        Average  = Math.Round(grp.Average(g => g.Score), 1),\n        PassCount = grp.Count(g => g.Score >= 60)\n    });\n\n// (3) 平均分最高的學生\nstring topStudent = grades\n    .GroupBy(g => g.Name)\n    .OrderByDescending(grp => grp.Average(g => g.Score))\n    .First()  // 取第一個（平均最高的組）\n    .Key;     // 取組的 Key（學生姓名）\n\nConsole.WriteLine($\"平均分最高：{topStudent}\");",
+          "explanation": "GroupBy 後的每個 IGrouping<TKey, TElement> 可以繼續用 LINQ 方法（g.Average()、g.Max()、g.Count()）進行聚合。在 GroupBy 後直接接 OrderByDescending 再 First() 是找「最大分組」的慣用寫法。注意 .Key 取出分組的鍵值。"
+        },
+        {
+          "id": 4,
+          "type": "coding",
+          "question": "有 List<Order>（OrderId, CustomerId, Amount）和 List<Customer>（CustomerId, Name, City）兩個集合。請用 LINQ Join 完成：(1) 取得每筆訂單的客戶名稱和金額；(2) 用 GroupJoin 取得每個客戶的訂單總金額（沒有訂單的客戶顯示 0）；(3) 找出訂單總金額最高的城市。",
+          "answer": "public class Order { public int OrderId; public int CustomerId; public decimal Amount; }\npublic class Customer { public int CustomerId; public string Name = \"\"; public string City = \"\"; }\n\nvar orders = new List<Order>\n{\n    new Order { OrderId=1, CustomerId=1, Amount=1500 },\n    new Order { OrderId=2, CustomerId=2, Amount=3000 },\n    new Order { OrderId=3, CustomerId=1, Amount=800  },\n    new Order { OrderId=4, CustomerId=3, Amount=2200 }\n};\nvar customers = new List<Customer>\n{\n    new Customer { CustomerId=1, Name=\"王大明\", City=\"台北\" },\n    new Customer { CustomerId=2, Name=\"李小華\", City=\"台中\" },\n    new Customer { CustomerId=3, Name=\"陳小英\", City=\"台北\" },\n    new Customer { CustomerId=4, Name=\"張無訂\", City=\"高雄\" }  // 無訂單\n};\n\n// (1) INNER JOIN：每筆訂單 + 客戶名稱\nvar orderDetails = orders\n    .Join(customers,\n        o => o.CustomerId,   // 外部鍵（orders 的連結欄位）\n        c => c.CustomerId,   // 內部鍵（customers 的連結欄位）\n        (o, c) => new { o.OrderId, c.Name, o.Amount });\n\n// (2) GROUP JOIN：每位客戶 + 訂單總金額（LEFT OUTER JOIN）\nvar customerTotals = customers\n    .GroupJoin(orders,\n        c => c.CustomerId,\n        o => o.CustomerId,\n        (c, ords) => new\n        {\n            c.Name,\n            Total = ords.Sum(o => o.Amount)  // 無訂單時 Sum = 0\n        });\n\n// (3) 訂單總金額最高的城市\nstring topCity = customers\n    .GroupJoin(orders, c => c.CustomerId, o => o.CustomerId,\n        (c, ords) => new { c.City, Total = ords.Sum(o => o.Amount) })\n    .GroupBy(x => x.City)\n    .OrderByDescending(g => g.Sum(x => x.Total))\n    .First().Key;\n\nConsole.WriteLine($\"訂單最多城市：{topCity}\");  // 台北",
+          "explanation": "Join（INNER JOIN）：兩邊都有對應資料才出現。GroupJoin（LEFT OUTER JOIN）：左側（customers）全部保留，右側（orders）無對應時為空集合，Sum 空集合得 0。Join 和 GroupJoin 的參數順序：Join(inner, outerKeySelector, innerKeySelector, resultSelector)。"
+        },
+        {
+          "id": 5,
+          "type": "coding",
+          "question": "有 List<Student>，每個 Student 有 string Name 和 List<string> Courses（選課清單）。用 LINQ 完成：(1) 用 SelectMany 取出所有學生選的全部課程（含重複）；(2) 取出有選 \"資料庫\" 的學生姓名；(3) 用 SelectMany 展開並計算每門課的選課人數（Dictionary）。",
+          "answer": "public class Student\n{\n    public string Name { get; set; } = \"\";\n    public List<string> Courses { get; set; } = new();\n}\n\nvar students = new List<Student>\n{\n    new Student { Name=\"小明\", Courses = new() { \"資料庫\", \"演算法\", \"網頁設計\" } },\n    new Student { Name=\"小華\", Courses = new() { \"資料庫\", \"作業系統\" } },\n    new Student { Name=\"小英\", Courses = new() { \"演算法\", \"網頁設計\", \"程式設計\" } }\n};\n\n// (1) 所有課程（展平，含重複）\nList<string> allCourses = students\n    .SelectMany(s => s.Courses)  // 每個學生的 List<string> 展平\n    .ToList();\n// [\"資料庫\",\"演算法\",\"網頁設計\",\"資料庫\",\"作業系統\",\"演算法\",\"網頁設計\",\"程式設計\"]\n\n// (2) 有選 \"資料庫\" 的學生\nList<string> dbStudents = students\n    .Where(s => s.Courses.Contains(\"資料庫\"))\n    .Select(s => s.Name)\n    .ToList();\n// [\"小明\", \"小華\"]\n\n// (3) 每門課的選課人數\nDictionary<string, int> courseCount = students\n    .SelectMany(s => s.Courses)  // 展平：取得 (Student, Course) 配對\n    .GroupBy(course => course)   // 依課程分組\n    .ToDictionary(g => g.Key, g => g.Count());\n// { \"資料庫\":2, \"演算法\":2, \"網頁設計\":2, \"作業系統\":1, \"程式設計\":1 }",
+          "explanation": "SelectMany 是 LINQ 中展平巢狀集合的關鍵運算子。Select 每個元素轉成集合後得到 IEnumerable<List<string>>（集合的集合）；SelectMany 再展開成 IEnumerable<string>（單一集合）。Contains 在 Lambda 內是 List<T>.Contains()，用於判斷元素是否在集合中。"
+        },
+        {
+          "id": 6,
+          "type": "coding",
+          "question": "實作一個泛型的 LINQ 分頁方法 PagedResult<T> GetPage<T>(IEnumerable<T> source, int page, int pageSize)，回傳包含 Items（當頁資料）、TotalCount（總筆數）、TotalPages（總頁數）、CurrentPage 的物件。測試用 1-100 的整數，每頁 10 筆，取第 3 頁。",
+          "answer": "public class PagedResult<T>\n{\n    public List<T> Items { get; set; } = new();\n    public int TotalCount { get; set; }\n    public int TotalPages { get; set; }\n    public int CurrentPage { get; set; }\n    public int PageSize { get; set; }\n    public bool HasPrevious => CurrentPage > 1;\n    public bool HasNext => CurrentPage < TotalPages;\n}\n\npublic static PagedResult<T> GetPage<T>(\n    IEnumerable<T> source,\n    int page,\n    int pageSize)\n{\n    if (page < 1) throw new ArgumentException(\"page 必須 >= 1\");\n    if (pageSize < 1) throw new ArgumentException(\"pageSize 必須 >= 1\");\n\n    // 先 ToList() 避免雙重枚舉\n    var list = source.ToList();\n    int total = list.Count;\n\n    return new PagedResult<T>\n    {\n        TotalCount  = total,\n        TotalPages  = (int)Math.Ceiling((double)total / pageSize),\n        CurrentPage = page,\n        PageSize    = pageSize,\n        Items = list\n            .Skip((page - 1) * pageSize)  // 略過前幾頁\n            .Take(pageSize)               // 取當頁筆數\n            .ToList()\n    };\n}\n\n// 測試\nvar numbers = Enumerable.Range(1, 100);  // 1 ~ 100\nvar result = GetPage(numbers, page: 3, pageSize: 10);\n\nConsole.WriteLine($\"第 {result.CurrentPage}/{result.TotalPages} 頁\");\nConsole.WriteLine($\"本頁資料：{string.Join(\", \", result.Items)}\");\n// 本頁資料：21, 22, 23, 24, 25, 26, 27, 28, 29, 30",
+          "explanation": "Skip((page-1)*pageSize).Take(pageSize) 是分頁的標準寫法，考試必背。第1頁：Skip(0).Take(10)；第2頁：Skip(10).Take(10)；第3頁：Skip(20).Take(10)。Math.Ceiling(total / pageSize) 計算總頁數時要用浮點除法（double）避免整數除法截斷。"
+        },
+        {
+          "id": 7,
+          "type": "coding",
+          "question": "用 LINQ 的 Aggregate 方法實作：(1) 計算 int[] 的乘積（所有元素相乘）；(2) 找出字串清單中最長的字串；(3) 建立一個從 List<string> 生成 CSV 標頭行的方法（第一欄固定為 \"Id\"，其餘來自清單，加上引號）。",
+          "answer": "// (1) 計算乘積（Aggregate 帶 seed）\nint[] nums = { 2, 3, 4, 5 };\nlong product = nums.Aggregate(1L, (acc, n) => acc * n);\nConsole.WriteLine(product);  // 120\n\n// (2) 找最長字串\nvar words = new List<string> { \"banana\", \"fig\", \"elderberry\", \"apple\" };\nstring longest = words.Aggregate((current, next)\n    => next.Length > current.Length ? next : current);\nConsole.WriteLine(longest);  // elderberry\n\n// (3) 生成 CSV 標頭行\npublic static string BuildCsvHeader(List<string> columns)\n{\n    return columns\n        .Select(c => $\"\\\"{c}\\\"\")                    // 每欄加引號\n        .Aggregate(\"\\\"Id\\\"\", (header, col)          // seed = 第一欄\n            => header + \",\" + col);\n}\n\nvar cols = new List<string> { \"Name\", \"Email\", \"Phone\" };\nConsole.WriteLine(BuildCsvHeader(cols));\n// \"Id\",\"Name\",\"Email\",\"Phone\"",
+          "explanation": "Aggregate 兩種用法：(1) 無 seed：Aggregate((acc, cur) => ...)，acc 初始值為第一個元素；(2) 有 seed：Aggregate(initialValue, (acc, cur) => ...)，acc 從 initialValue 開始。求乘積時 seed=1（乘法單位元素）；求最長字串可用無 seed 版本。"
+        },
+        {
+          "id": 8,
+          "type": "coding",
+          "question": "用查詢語法（query syntax）改寫以下方法語法 LINQ，並說明查詢語法與方法語法的對應關係：\n```\nvar result = students\n    .Where(s => s.Score >= 60)\n    .OrderBy(s => s.Name)\n    .Select(s => new { s.Name, s.Score, Grade = s.Score >= 90 ? \"A\" : s.Score >= 80 ? \"B\" : \"C\" });\n```",
+          "answer": "// ── 原始方法語法 ──\nvar methodSyntax = students\n    .Where(s => s.Score >= 60)\n    .OrderBy(s => s.Name)\n    .Select(s => new\n    {\n        s.Name,\n        s.Score,\n        Grade = s.Score >= 90 ? \"A\" : s.Score >= 80 ? \"B\" : \"C\"\n    });\n\n// ── 對應的查詢語法 ──\nvar querySyntax =\n    from s in students          // from：資料來源\n    where s.Score >= 60         // where：過濾條件\n    orderby s.Name              // orderby：排序（降序加 descending）\n    select new                  // select：投影\n    {\n        s.Name,\n        s.Score,\n        Grade = s.Score >= 90 ? \"A\" : s.Score >= 80 ? \"B\" : \"C\"\n    };\n\n// ── 對應關係表 ──\n// 方法語法               查詢語法\n// .Where(pred)        ←→  where pred\n// .Select(proj)       ←→  select proj\n// .OrderBy(key)       ←→  orderby key\n// .OrderByDescending  ←→  orderby key descending\n// .GroupBy(key)       ←→  group x by key\n// .Join(...)          ←→  join ... on ... equals ...\n// （無查詢語法對應）   ←→  SelectMany, Aggregate, Skip, Take\n\n// 兩種語法執行結果完全相同\nforeach (var item in querySyntax)\n    Console.WriteLine($\"{item.Name}：{item.Score}（{item.Grade}）\");",
+          "explanation": "查詢語法和方法語法在編譯後生成相同的 IL 程式碼，效能完全相同。考試以方法語法為主，但查詢語法有時更易讀（尤其是多表 Join）。注意：SelectMany、Aggregate、Skip、Take 等沒有對應的查詢語法，必須用方法語法。"
+        },
+        {
+          "id": 9,
+          "type": "coding",
+          "question": "用 LINQ 方法語法完成以下操作（數字相關）：(1) 從 1 到 1000 中找出所有完全平方數（1,4,9,16...）；(2) 從 List<int> 中找出前三大的不重複值；(3) 計算費氏數列前 10 項（用 Enumerable.Range + Select 搭配索引）。",
+          "answer": "// (1) 1 到 1000 的完全平方數\nvar perfectSquares = Enumerable.Range(1, 1000)\n    .Where(n =>\n    {\n        int sqrt = (int)Math.Sqrt(n);\n        return sqrt * sqrt == n;  // 確認是完全平方數\n    })\n    .ToList();\nConsole.WriteLine(string.Join(\", \", perfectSquares.Take(10)));  // 1,4,9,16,25,36,49,64,81,100\n\n// (2) 前三大不重複值\nvar nums = new List<int> { 5, 2, 8, 8, 1, 9, 9, 3, 7 };\nvar top3 = nums\n    .Distinct()              // 去重\n    .OrderByDescending(n => n)\n    .Take(3)\n    .ToList();\nConsole.WriteLine(string.Join(\", \", top3));  // 9, 8, 7\n\n// (3) 費氏數列前 10 項（利用 Select 的索引版本）\nvar fib = Enumerable.Range(0, 10)\n    .Select(i =>\n    {\n        if (i == 0) return 0;\n        if (i == 1) return 1;\n        // 注意：這種方式效率低，但展示 LINQ 用法\n        int a = 0, b = 1;\n        for (int j = 2; j <= i; j++) { int t = a + b; a = b; b = t; }\n        return b;\n    });\nConsole.WriteLine(string.Join(\", \", fib));  // 0,1,1,2,3,5,8,13,21,34",
+          "explanation": "Enumerable.Range(start, count) 產生連續整數序列，是 LINQ 的常用起點。Distinct() 需在 OrderByDescending 之前，否則相同值雖然排列相鄰但不會被去掉（Distinct 和順序無關）。Select 有帶索引的多載：.Select((element, index) => ...)，可取得元素和其位置。"
+        },
+        {
+          "id": 10,
+          "type": "coding",
+          "question": "實作一個簡化的 ORM 查詢鏈：List<Employee>（Id, Name, Department, Salary, HireDate）。用 LINQ 完成：(1) 找出薪資高於部門平均薪資的員工；(2) 找出各部門入職最久的員工（各部門一人）；(3) 計算每個部門薪資中位數。",
+          "answer": "public class Employee\n{\n    public int Id { get; set; }\n    public string Name { get; set; } = \"\";\n    public string Department { get; set; } = \"\";\n    public decimal Salary { get; set; }\n    public DateTime HireDate { get; set; }\n}\n\nvar employees = new List<Employee>\n{\n    new Employee { Id=1, Name=\"王一\", Department=\"RD\",  Salary=80000, HireDate=new DateTime(2018,1,1) },\n    new Employee { Id=2, Name=\"李二\", Department=\"RD\",  Salary=65000, HireDate=new DateTime(2020,6,1) },\n    new Employee { Id=3, Name=\"張三\", Department=\"RD\",  Salary=95000, HireDate=new DateTime(2016,3,1) },\n    new Employee { Id=4, Name=\"陳四\", Department=\"HR\",  Salary=55000, HireDate=new DateTime(2019,9,1) },\n    new Employee { Id=5, Name=\"林五\", Department=\"HR\",  Salary=60000, HireDate=new DateTime(2021,2,1) }\n};\n\n// (1) 薪資高於部門平均的員工\nvar deptAvg = employees\n    .GroupBy(e => e.Department)\n    .ToDictionary(g => g.Key, g => g.Average(e => e.Salary));\n\nvar aboveAvg = employees\n    .Where(e => e.Salary > deptAvg[e.Department]);\n\n// (2) 各部門入職最久的員工（HireDate 最小）\nvar longestServing = employees\n    .GroupBy(e => e.Department)\n    .Select(g => g.OrderBy(e => e.HireDate).First())  // 每組取最早入職的\n    .ToList();\n\n// (3) 各部門薪資中位數\nvar medianBySalary = employees\n    .GroupBy(e => e.Department)\n    .Select(g =>\n    {\n        var sorted = g.OrderBy(e => e.Salary).ToList();\n        int mid = sorted.Count / 2;\n        decimal median = sorted.Count % 2 == 0\n            ? (sorted[mid - 1].Salary + sorted[mid].Salary) / 2m\n            : sorted[mid].Salary;\n        return new { Dept = g.Key, Median = median };\n    });\n\nforeach (var d in medianBySalary)\n    Console.WriteLine($\"{d.Dept} 中位薪資：{d.Median:C}\");",
+          "explanation": "(1) 先建 Dictionary 存各部門平均，再用 Where 比較是典型的「子查詢」模式。(2) GroupBy 後在每組內再 OrderBy + First() 取最小值對應的物件。(3) 中位數需先排序，偶數個取中間兩個平均，奇數個取正中間。注意整數除法：2m 確保 decimal 除法。"
+        },
+        {
+          "id": 11,
+          "type": "debugging",
+          "question": "以下程式碼有 1 個延遲執行（Deferred Execution）的 bug，請找出並修正：",
+          "buggyCode": "var numbers = new List<int> { 1, 2, 3, 4, 5 };\n\n// 定義查詢（此時未執行）\nvar evenNumbers = numbers.Where(n => n % 2 == 0);\n\n// 修改來源集合\nnumbers.Add(6);\nnumbers.Add(8);\n\n// 預期：只有 2, 4（定義查詢時的資料）\n// 實際會包含 6, 8！\nConsole.WriteLine(string.Join(\", \", evenNumbers));\n// 若真的只想要定義當下的快照，應該怎麼做？",
+          "answer": "var numbers = new List<int> { 1, 2, 3, 4, 5 };\n\n// [修正] 立即執行並快取結果，用 ToList() 固定當下的快照\nvar evenNumbers = numbers.Where(n => n % 2 == 0).ToList();\n\n// 修改來源集合（不影響已快取的結果）\nnumbers.Add(6);\nnumbers.Add(8);\n\n// 正確：只有 2, 4\nConsole.WriteLine(string.Join(\", \", evenNumbers));  // 2, 4\n\n// 若想要包含新增的資料，才不加 ToList()（保持延遲執行）\nvar dynamicQuery = numbers.Where(n => n % 2 == 0);  // 每次枚舉重新計算\nConsole.WriteLine(string.Join(\", \", dynamicQuery));  // 2, 4, 6, 8",
+          "explanation": "LINQ 查詢預設是延遲執行：查詢定義後不立刻跑，每次 foreach 或輸出時才重新對來源集合執行過濾。若來源集合在查詢定義後被修改，結果會包含修改後的資料。使用 ToList() / ToArray() 立即執行並「快照」結果，後續對來源的修改不影響快照。"
+        },
+        {
+          "id": 12,
+          "type": "debugging",
+          "question": "以下程式碼有 1 處錯誤（First vs FirstOrDefault 的選擇），請找出問題並修正：",
+          "buggyCode": "var users = new List<string> { \"Alice\", \"Bob\", \"Charlie\" };\n\n// 尋找名稱以 \"D\" 開頭的使用者\nstring found = users.First(u => u.StartsWith(\"D\"));\n\nif (found != null)\n    Console.WriteLine($\"找到：{found}\");\nelse\n    Console.WriteLine(\"找不到\");",
+          "answer": "var users = new List<string> { \"Alice\", \"Bob\", \"Charlie\" };\n\n// [修正] 找不到時不應拋例外，改用 FirstOrDefault\nstring? found = users.FirstOrDefault(u => u.StartsWith(\"D\"));\n// FirstOrDefault 找不到時回傳 null（參考型別）或預設值（值型別）\n\nif (found != null)\n    Console.WriteLine($\"找到：{found}\");\nelse\n    Console.WriteLine(\"找不到\");  // 正確走這裡",
+          "explanation": "First() 在找不到元素時拋出 InvalidOperationException（「序列沒有符合的元素」），程式崩潰。FirstOrDefault() 找不到時回傳 null（參考型別）或 0/false（值型別），配合 null 檢查更安全。若你確定元素「一定存在」才用 First()；否則用 FirstOrDefault()。Single() vs SingleOrDefault() 也是同樣邏輯。"
+        },
+        {
+          "id": 13,
+          "type": "debugging",
+          "question": "以下程式碼有 1 處錯誤（Single 的誤用），請找出並修正：",
+          "buggyCode": "var orders = new List<(int Id, string Status)>\n{\n    (1, \"Pending\"),\n    (2, \"Completed\"),\n    (3, \"Pending\"),\n    (4, \"Completed\")\n};\n\n// 想取得所有 Pending 的訂單，卻用了 Single\nvar pendingOrder = orders.Single(o => o.Status == \"Pending\");\nConsole.WriteLine(pendingOrder);",
+          "answer": "var orders = new List<(int Id, string Status)>\n{\n    (1, \"Pending\"),\n    (2, \"Completed\"),\n    (3, \"Pending\"),\n    (4, \"Completed\")\n};\n\n// [修正] 多筆結果用 Where，Single 只適用於確定只有一個符合的情境\nvar pendingOrders = orders.Where(o => o.Status == \"Pending\").ToList();\nforeach (var order in pendingOrders)\n    Console.WriteLine(order);\n\n// 若真的要用 Single，需確保只有一筆（例如用 Id 查詢）\nvar orderById = orders.Single(o => o.Id == 2);  // 確定只有一個 Id==2 的\nConsole.WriteLine(orderById);",
+          "explanation": "Single() 要求序列中**恰好有一個**符合條件的元素：0 個→ InvalidOperationException（找不到）；2+ 個→ InvalidOperationException（多於一個）。此例 Pending 有 2 筆，Single 會拋例外。用 Where 取多筆結果；用 Single/SingleOrDefault 僅在確保唯一性時（例如 PrimaryKey 查詢）。"
+        },
+        {
+          "id": 14,
+          "type": "debugging",
+          "question": "以下程式碼有 1 處錯誤（Select vs SelectMany 混淆），請找出並修正：",
+          "buggyCode": "var departments = new List<(string Dept, List<string> Members)>\n{\n    (\"RD\",  new List<string> { \"Alice\", \"Bob\" }),\n    (\"HR\",  new List<string> { \"Carol\" }),\n    (\"QA\",  new List<string> { \"Dave\", \"Eve\", \"Frank\" })\n};\n\n// 想取得所有成員的平面清單（List<string>）\n// 用了 Select 但得到 List<List<string>>\nvar allMembers = departments\n    .Select(d => d.Members)  // 錯誤：得到 IEnumerable<List<string>>\n    .ToList();\n\nforeach (string member in allMembers)  // 型別不符：是 List<string> 不是 string\n    Console.WriteLine(member);",
+          "answer": "var departments = new List<(string Dept, List<string> Members)>\n{\n    (\"RD\",  new List<string> { \"Alice\", \"Bob\" }),\n    (\"HR\",  new List<string> { \"Carol\" }),\n    (\"QA\",  new List<string> { \"Dave\", \"Eve\", \"Frank\" })\n};\n\n// [修正] 用 SelectMany 展平集合的集合\nvar allMembers = departments\n    .SelectMany(d => d.Members)  // IEnumerable<string> 平面清單\n    .ToList();\n\nforeach (string member in allMembers)\n    Console.WriteLine(member);\n// Alice, Bob, Carol, Dave, Eve, Frank",
+          "explanation": "Select(d => d.Members) 回傳 IEnumerable<List<string>>（每個元素還是 List），foreach 的迭代型別是 List<string> 不是 string，導致型別錯誤。SelectMany(d => d.Members) 把每個 List<string> 展開後合併成單一 IEnumerable<string>。記憶口訣：Select 是 1→1 轉換；SelectMany 是 1→多 展平。"
+        },
+        {
+          "id": 15,
+          "type": "debugging",
+          "question": "以下程式碼有 1 處效能問題（雙重枚舉），請找出並說明如何修正：",
+          "buggyCode": "IEnumerable<int> GetExpensiveData()\n{\n    Console.WriteLine(\"[資料庫查詢中...]\");\n    return Enumerable.Range(1, 100);  // 模擬資料庫查詢\n}\n\nvar data = GetExpensiveData();  // 定義查詢，未執行\n\nint count = data.Count();       // 第一次枚舉（執行查詢）\nint sum   = data.Sum();         // 第二次枚舉（再次執行查詢！）\ndouble avg = data.Average();    // 第三次枚舉\n\nConsole.WriteLine($\"Count={count}, Sum={sum}, Avg={avg}\");",
+          "answer": "IEnumerable<int> GetExpensiveData()\n{\n    Console.WriteLine(\"[資料庫查詢中...]\");\n    return Enumerable.Range(1, 100);\n}\n\n// [修正] 先 ToList() 執行一次查詢，快取結果後再多次使用\nvar data = GetExpensiveData().ToList();  // 只查詢一次\n\nint count  = data.Count;       // List.Count 屬性，O(1)\nint sum    = data.Sum();\ndouble avg = data.Average();\n\nConsole.WriteLine($\"Count={count}, Sum={sum}, Avg={avg}\");\n// [資料庫查詢中...] 只印一次，不是三次",
+          "explanation": "IEnumerable<T> 每次枚舉都重新執行查詢來源（可能是資料庫查詢、網路請求、計算密集運算）。若需對同一資料多次操作，應先 ToList() / ToArray() 執行一次並快取到記憶體，後續操作都在記憶體中進行。這是 LINQ 效能最常見的反模式（anti-pattern）。"
+        },
+        {
+          "id": 16,
+          "type": "multiple-choice",
+          "question": "以下關於 LINQ 延遲執行（Deferred Execution）的敘述，何者**正確**？",
+          "options": [
+            "A. 所有 LINQ 方法都是立即執行（Immediate Execution），呼叫時就計算結果",
+            "B. Where、Select、OrderBy 是延遲執行；Count()、ToList()、First() 是立即執行並觸發查詢",
+            "C. 延遲執行表示查詢永遠不會實際執行，只是語法糖",
+            "D. 呼叫 ToList() 後，若再修改來源集合，ToList() 的結果也會跟著更新"
+          ],
+          "answer": "B",
+          "explanation": "B 正確：Where/Select/OrderBy/GroupBy/Join 等是延遲執行運算子，只定義查詢邏輯；Count()/Sum()/ToList()/ToArray()/First()/Any()/foreach 是終端運算（terminal operation），觸發查詢實際執行。A 錯：大部分是延遲執行。C 錯：延遲執行只是推遲，最終一定會執行。D 錯：ToList() 執行後快照結果，後續來源修改不影響已建立的 List。"
+        },
+        {
+          "id": 17,
+          "type": "multiple-choice",
+          "question": "執行以下程式碼，輸出結果是？\n```csharp\nvar nums = new[] { 1, 2, 3, 4, 5 };\nvar result = nums.Where(n => n > 2)\n                 .Select(n => n * 10)\n                 .Take(2);\nConsole.WriteLine(string.Join(\",\", result));\n```",
+          "options": [
+            "A. 30,40,50",
+            "B. 30,40",
+            "C. 10,20",
+            "D. 編譯錯誤"
+          ],
+          "answer": "B",
+          "explanation": "B 正確。執行流程：Where(n > 2) 過濾出 [3,4,5]，Select(n*10) 轉換為 [30,40,50]，Take(2) 取前兩個得 [30,40]。LINQ 鏈的執行是從左到右依序處理每個元素（懶惰求值），Take(2) 在取到兩個元素後就停止，不會完整枚舉剩餘元素。"
+        },
+        {
+          "id": 18,
+          "type": "multiple-choice",
+          "question": "以下 LINQ 操作，哪一個可能拋出 InvalidOperationException？",
+          "options": [
+            "A. list.FirstOrDefault(x => x.Id == 99) 當 Id=99 不存在時",
+            "B. list.Single(x => x.Id == 1) 當恰好有一個 Id=1 的元素時",
+            "C. list.Where(x => x.IsActive).Count() 當沒有 IsActive=true 的元素時",
+            "D. list.Single(x => x.Type == \"Admin\") 當有多個 Type=Admin 的元素時"
+          ],
+          "answer": "D",
+          "explanation": "D 正確：Single() 要求序列中恰好有一個符合的元素，若有多個（或零個）就拋出 InvalidOperationException。A 錯：FirstOrDefault 找不到回傳 null，不拋例外。B 錯：恰好一個時 Single 正常回傳。C 錯：Count() 在零個符合時回傳 0，不拋例外。考試要記住：First/Single 沒有 Default 後綴的版本在找不到時都拋例外。"
+        }
+      ]
+    },
+    {
+      "id": "async-await",
+      "title": "非同步程式設計 (async/await)",
+      "content": "async/await 是 C# 5.0 引入的語法糖，讓非同步程式碼看起來像同步程式碼，底層基於 Task-based Asynchronous Pattern（TAP）。\n\n**基本規則**：\n- 方法加 `async` 修飾後，可在內部使用 `await`\n- `await` 運算子等待一個 `Task` 完成，**不阻塞執行緒**，等待期間執行緒可執行其他工作\n- async 方法的回傳型別：`Task`（無回傳值）、`Task<T>`（有回傳值）、`void`（事件處理器專用，**有重大限制**）\n\n**Task 相關**：\n- `Task.Delay(ms)`：非同步等待（用 await，非 Thread.Sleep）\n- `Task.Run(action)`：將工作丟到執行緒池背景執行\n- `Task.WhenAll(tasks)`：等待**所有** Task 完成（並行）\n- `Task.WhenAny(tasks)`：等待**任一** Task 完成即繼續\n- `Task.FromResult(value)`：建立已完成的 Task（同步包裝為 Task）\n\n**CancellationToken 取消操作**：\n```csharp\nvar cts = new CancellationTokenSource();\ncts.CancelAfter(3000);  // 3 秒後自動取消\nawait DoWorkAsync(cts.Token);\n// 方法內：token.ThrowIfCancellationRequested();\n```\n\n**async void 的危險**：async void 方法的例外無法被 try/catch 捕捉（會直接崩潰），且無法被 await。**只有** UI 事件處理器才應使用 async void，其他一律用 async Task。\n\n**避免 Deadlock**：在 library 程式碼中使用 `.ConfigureAwait(false)` 避免捕捉同步脈絡（synchronization context），防止與 ASP.NET 或 WinForms 的死鎖。呼叫端不要對 async 方法用 `.Result` 或 `.Wait()`——這會造成死鎖。\n\n**例外處理**：`await` 的 Task 若有例外，await 時會重新拋出，可用 try/catch 包住 await。`Task.WhenAll` 若有多個 Task 失敗，只會拋出第一個例外，其餘存在 Task.Exception.InnerExceptions 中。",
+      "codeExample": "// ── 基本 async/await ──\npublic async Task<string> FetchDataAsync(string url)\n{\n    using HttpClient client = new HttpClient();\n    // await 不阻塞執行緒，等待 HTTP 回應期間可處理其他工作\n    string content = await client.GetStringAsync(url);\n    return content.Substring(0, Math.Min(100, content.Length));\n}\n\n// ── Task.WhenAll 並行執行 ──\npublic async Task<int[]> FetchMultipleAsync()\n{\n    Task<int> t1 = Task.Run(() => { Task.Delay(1000).Wait(); return 1; });\n    Task<int> t2 = Task.Run(() => { Task.Delay(500).Wait();  return 2; });\n    Task<int> t3 = Task.Run(() => { Task.Delay(800).Wait();  return 3; });\n\n    // 三個同時跑，等所有完成（約 1 秒，不是 2.3 秒）\n    int[] results = await Task.WhenAll(t1, t2, t3);\n    return results;  // [1, 2, 3]\n}\n\n// ── CancellationToken ──\npublic async Task ProcessLargeFileAsync(string path, CancellationToken token)\n{\n    var lines = File.ReadAllLines(path);\n    for (int i = 0; i < lines.Length; i++)\n    {\n        token.ThrowIfCancellationRequested();  // 每次迴圈檢查取消\n        await Task.Delay(10, token);           // 模擬處理，支援取消\n        Console.WriteLine($\"處理第 {i + 1} 行\");\n    }\n}\n\n// 使用\nvar cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));\ntry\n{\n    await ProcessLargeFileAsync(\"data.txt\", cts.Token);\n}\ncatch (OperationCanceledException)\n{\n    Console.WriteLine(\"處理被取消\");\n}\n\n// ── async void 的問題（僅示範，不推薦）──\n// async void OnButtonClick(object s, EventArgs e)  ← 事件處理器唯一允許\n// {\n//     await SomeWorkAsync();  // 例外不會傳回呼叫端\n// }",
+      "keyPoints": [
+        "async 方法回傳 Task（無值）或 Task<T>（有值），除事件處理器外禁用 async void",
+        "await Task.WhenAll() 並行等待多個 Task；await Task.WhenAny() 等任一完成即繼續",
+        "CancellationToken：傳入方法，方法內呼叫 token.ThrowIfCancellationRequested() 或傳給支援取消的 API",
+        "不可對 async 方法用 .Result 或 .Wait()——在 UI / ASP.NET 環境會造成死鎖",
+        "Task.Delay(ms) 非同步等待（不阻塞執行緒）；Thread.Sleep(ms) 阻塞執行緒——考試中非同步方法裡應用前者"
+      ],
+      "exercises": [
+        {
+          "id": 1,
+          "type": "coding",
+          "question": "請手寫一個 async Task<int> SumAsync(int[] numbers) 方法，模擬非同步計算：先 await Task.Delay(100) 表示有 IO 操作，再計算並回傳總和。再寫 Main 方法（async Task Main）呼叫並印出結果。",
+          "answer": "public class Calculator\n{\n    // async Task<T>：非同步方法有回傳值\n    public async Task<int> SumAsync(int[] numbers)\n    {\n        // 模擬非同步 IO 操作（如讀取資料庫）\n        await Task.Delay(100);\n\n        // 計算完畢後回傳（await 之後繼續執行）\n        int sum = 0;\n        foreach (int n in numbers)\n            sum += n;\n        return sum;\n    }\n\n    // 另一種寫法：用 LINQ\n    public async Task<int> SumLinqAsync(int[] numbers)\n    {\n        await Task.Delay(100);\n        return numbers.Sum();\n    }\n}\n\n// async Task Main（C# 7.1+ 支援）\npublic static async Task Main(string[] args)\n{\n    var calc = new Calculator();\n    int[] numbers = { 1, 2, 3, 4, 5 };\n\n    // await 等待 Task<int> 完成，取得 int 結果\n    int result = await calc.SumAsync(numbers);\n    Console.WriteLine($\"總和：{result}\");  // 15\n\n    // 也可以先拿 Task 再 await\n    Task<int> task = calc.SumLinqAsync(numbers);\n    // 可在此期間做其他事...\n    int result2 = await task;\n    Console.WriteLine($\"LINQ 總和：{result2}\");  // 15\n}",
+          "explanation": "async Task<int> 是非同步方法有回傳值的標準寫法。await 關鍵字解包 Task<int> 取得 int 值。async Task Main 從 C# 7.1 開始支援，考試可直接使用。Task.Delay 模擬非同步 IO，實際場景是 HttpClient.GetAsync、File.ReadAllTextAsync 等。"
+        },
+        {
+          "id": 2,
+          "type": "coding",
+          "question": "請寫一個方法 async Task<List<string>> FetchAllAsync(List<string> urls)，用 Task.WhenAll 並行下載多個 URL 的內容（用 Task.FromResult(url + \"_content\") 模擬 HTTP 請求）。比較循序執行（foreach + await）和並行執行（WhenAll）的差異，寫出兩個版本並標記執行時間概念。",
+          "answer": "// 模擬 HTTP 請求（實際用 HttpClient.GetStringAsync）\nprivate static async Task<string> FakeHttpGetAsync(string url, int delayMs)\n{\n    await Task.Delay(delayMs);\n    return $\"{url}_content\";\n}\n\n// ── 版本一：循序執行（慢，total = sum of delays）──\npublic static async Task<List<string>> FetchSequentialAsync(List<string> urls)\n{\n    var results = new List<string>();\n    foreach (string url in urls)\n    {\n        // 一個 await 完成才進行下一個\n        string content = await FakeHttpGetAsync(url, 500);\n        results.Add(content);\n    }\n    return results;  // 3 個 URL × 500ms = ~1500ms\n}\n\n// ── 版本二：並行執行（快，total = max of delays）──\npublic static async Task<List<string>> FetchParallelAsync(List<string> urls)\n{\n    // 先建立所有 Task（不 await，讓它們同時開始執行）\n    IEnumerable<Task<string>> tasks = urls.Select(url => FakeHttpGetAsync(url, 500));\n\n    // 等待全部完成（約 500ms，不是 1500ms）\n    string[] results = await Task.WhenAll(tasks);\n    return results.ToList();\n}\n\n// 測試\nstatic async Task Main()\n{\n    var urls = new List<string> { \"url1\", \"url2\", \"url3\" };\n\n    var sw = System.Diagnostics.Stopwatch.StartNew();\n    var seq = await FetchSequentialAsync(urls);\n    Console.WriteLine($\"循序：{sw.ElapsedMilliseconds}ms\");  // ~1500ms\n\n    sw.Restart();\n    var par = await FetchParallelAsync(urls);\n    Console.WriteLine($\"並行：{sw.ElapsedMilliseconds}ms\");  // ~500ms\n}",
+          "explanation": "Task.WhenAll 的效能優勢：將多個獨立的 IO 操作並行執行。循序 await 是一個接一個，總時間是各操作時間的總和。WhenAll 同時發出所有請求，總時間接近最慢的那個請求。注意 Select 產生 Task 序列時不要 await（否則退化為循序）。"
+        },
+        {
+          "id": 3,
+          "type": "coding",
+          "question": "請實作一個支援 CancellationToken 的下載方法 async Task DownloadWithTimeoutAsync(string fileName, CancellationToken token)，模擬下載 10 個區塊，每個區塊用 Task.Delay(200, token) 模擬。在 Main 中設定 1.5 秒後取消，捕捉 OperationCanceledException，並示範如何用 CancellationTokenSource.CancelAfter()。",
+          "answer": "public static async Task DownloadWithTimeoutAsync(string fileName, CancellationToken token)\n{\n    Console.WriteLine($\"開始下載：{fileName}\");\n\n    for (int block = 1; block <= 10; block++)\n    {\n        // 方式一：將 token 傳給支援取消的方法\n        await Task.Delay(200, token);\n\n        // 方式二：手動檢查取消（適合 CPU-bound 工作）\n        token.ThrowIfCancellationRequested();\n\n        Console.WriteLine($\"  [{fileName}] 下載區塊 {block}/10\");\n    }\n\n    Console.WriteLine($\"下載完成：{fileName}\");\n}\n\nstatic async Task Main()\n{\n    // 建立 CancellationTokenSource，1.5 秒後自動取消\n    using var cts = new CancellationTokenSource();\n    cts.CancelAfter(TimeSpan.FromSeconds(1.5));\n\n    try\n    {\n        await DownloadWithTimeoutAsync(\"report.pdf\", cts.Token);\n    }\n    catch (OperationCanceledException)\n    {\n        // await 的 Task 被取消時拋出 OperationCanceledException\n        Console.WriteLine(\"下載已取消（超過時限）\");\n    }\n    finally\n    {\n        Console.WriteLine(\"清理資源...\");\n    }\n\n    // 也可以手動取消\n    using var cts2 = new CancellationTokenSource();\n    var downloadTask = DownloadWithTimeoutAsync(\"data.zip\", cts2.Token);\n    await Task.Delay(500);\n    cts2.Cancel();  // 手動取消\n    try { await downloadTask; }\n    catch (OperationCanceledException) { Console.WriteLine(\"手動取消成功\"); }\n}",
+          "explanation": "CancellationToken 的兩種檢查方式：(1) 傳給 Task.Delay/HttpClient 等支援取消的方法；(2) token.ThrowIfCancellationRequested() 手動在迴圈中檢查（適合 CPU 密集工作）。取消時拋出 OperationCanceledException（是 Exception 的子類）。using var cts 確保 CancellationTokenSource 被 Dispose。"
+        },
+        {
+          "id": 4,
+          "type": "coding",
+          "question": "請寫一個方法 async Task<T> WithTimeoutAsync<T>(Task<T> task, TimeSpan timeout)，若 task 在 timeout 時間內未完成則拋出 TimeoutException。使用 Task.WhenAny 實作。再寫 async Task ProcessOrderAsync() 示範呼叫。",
+          "answer": "public static async Task<T> WithTimeoutAsync<T>(Task<T> task, TimeSpan timeout)\n{\n    // 建立一個計時 Task\n    Task delayTask = Task.Delay(timeout);\n\n    // WhenAny：誰先完成就繼續\n    Task completedTask = await Task.WhenAny(task, delayTask);\n\n    if (completedTask == delayTask)\n    {\n        // 超時的是計時 Task，原始 task 尚未完成\n        throw new TimeoutException($\"操作超過 {timeout.TotalSeconds} 秒未完成\");\n    }\n\n    // 原始 task 先完成：await 它以取得結果（或重新拋出例外）\n    return await task;\n}\n\n// 模擬慢速操作\nprivate static async Task<string> SlowOperationAsync(int delayMs)\n{\n    await Task.Delay(delayMs);\n    return $\"完成（耗時 {delayMs}ms）\";\n}\n\nstatic async Task Main()\n{\n    try\n    {\n        // 操作 500ms，timeout 2 秒 → 成功\n        string r1 = await WithTimeoutAsync(SlowOperationAsync(500), TimeSpan.FromSeconds(2));\n        Console.WriteLine(r1);\n\n        // 操作 3000ms，timeout 1 秒 → 超時\n        string r2 = await WithTimeoutAsync(SlowOperationAsync(3000), TimeSpan.FromSeconds(1));\n        Console.WriteLine(r2);\n    }\n    catch (TimeoutException ex)\n    {\n        Console.WriteLine($\"逾時：{ex.Message}\");\n    }\n}",
+          "explanation": "Task.WhenAny 回傳最先完成的那個 Task（不 await 整個序列）。關鍵：WhenAny 回傳的是 Task<Task>，await 後得到「最先完成的 Task 物件」。再 await 原始 task 才能取得它的結果或重新拋出其例外。這是實作 timeout 的標準模式。"
+        },
+        {
+          "id": 5,
+          "type": "coding",
+          "question": "請寫一個 async Task 方法示範如何正確處理多個並行 Task 的例外：用 Task.WhenAll 等待 3 個 Task（其中 2 個會拋例外），展示如何捕捉所有例外（不只第一個）。",
+          "answer": "private static async Task<string> WorkAsync(int id, bool shouldFail)\n{\n    await Task.Delay(100 * id);\n    if (shouldFail)\n        throw new Exception($\"Task {id} 失敗了！\");\n    return $\"Task {id} 成功\";\n}\n\nstatic async Task Main()\n{\n    Task<string> t1 = WorkAsync(1, shouldFail: false);\n    Task<string> t2 = WorkAsync(2, shouldFail: true);   // 會失敗\n    Task<string> t3 = WorkAsync(3, shouldFail: true);   // 也會失敗\n\n    // ── 方法一：只捕捉第一個例外（常見但不完整）──\n    try\n    {\n        string[] results = await Task.WhenAll(t1, t2, t3);\n    }\n    catch (Exception ex)\n    {\n        // 只收到第一個拋出的例外\n        Console.WriteLine($\"第一個例外：{ex.Message}\");\n    }\n\n    // ── 方法二：檢查所有 Task 的例外 ──\n    Task<string> a1 = WorkAsync(1, false);\n    Task<string> a2 = WorkAsync(2, true);\n    Task<string> a3 = WorkAsync(3, true);\n\n    Task allTasks = Task.WhenAll(a1, a2, a3);\n    try\n    {\n        await allTasks;\n    }\n    catch\n    {\n        // allTasks.Exception 包含所有失敗 Task 的 AggregateException\n        if (allTasks.Exception != null)\n        {\n            foreach (Exception inner in allTasks.Exception.InnerExceptions)\n                Console.WriteLine($\"例外：{inner.Message}\");\n        }\n\n        // 個別檢查每個 Task 的狀態\n        foreach (var t in new[] { a1, a2, a3 })\n        {\n            if (t.IsFaulted)\n                Console.WriteLine($\"失敗：{t.Exception!.InnerException!.Message}\");\n            else if (t.IsCompletedSuccessfully)\n                Console.WriteLine($\"成功：{t.Result}\");\n        }\n    }\n}",
+          "explanation": "Task.WhenAll 若有多個 Task 失敗，await 只重新拋出第一個例外。要取得所有例外，需透過 task.Exception.InnerExceptions（AggregateException 的內部例外集合）。await 之後再檢查每個 Task 的 IsFaulted / IsCompletedSuccessfully 狀態是最完整的錯誤處理方式。"
+        },
+        {
+          "id": 6,
+          "type": "coding",
+          "question": "請用 async/await 設計一個簡單的「重試機制」方法 async Task<T> RetryAsync<T>(Func<Task<T>> operation, int maxRetries, TimeSpan delay)，若 operation 拋出例外就等待 delay 後重試，超過 maxRetries 次則重新拋出最後一個例外。",
+          "answer": "public static async Task<T> RetryAsync<T>(\n    Func<Task<T>> operation,  // 要執行的非同步操作\n    int maxRetries,\n    TimeSpan delay)\n{\n    Exception? lastException = null;\n\n    for (int attempt = 1; attempt <= maxRetries; attempt++)\n    {\n        try\n        {\n            T result = await operation();  // 呼叫 Func 取得 Task，再 await\n            return result;  // 成功就直接回傳\n        }\n        catch (Exception ex)\n        {\n            lastException = ex;\n            Console.WriteLine($\"第 {attempt} 次嘗試失敗：{ex.Message}\");\n\n            if (attempt < maxRetries)\n                await Task.Delay(delay);  // 等待後重試\n        }\n    }\n\n    // 所有重試都失敗\n    throw new Exception($\"操作在 {maxRetries} 次重試後仍失敗\", lastException);\n}\n\n// 測試\nstatic int _callCount = 0;\nstatic async Task<string> UnreliableApiAsync()\n{\n    await Task.Delay(100);\n    _callCount++;\n    if (_callCount < 3)  // 前兩次失敗，第三次成功\n        throw new HttpRequestException($\"連線失敗（第 {_callCount} 次）\");\n    return \"API 回應成功\";\n}\n\nstatic async Task Main()\n{\n    try\n    {\n        string result = await RetryAsync(\n            () => UnreliableApiAsync(),  // Func<Task<string>>\n            maxRetries: 3,\n            delay: TimeSpan.FromMilliseconds(500));\n        Console.WriteLine(result);  // API 回應成功\n    }\n    catch (Exception ex)\n    {\n        Console.WriteLine($\"最終失敗：{ex.Message}\");\n    }\n}",
+          "explanation": "Func<Task<T>> 是「回傳 Task 的工廠函式」，每次呼叫 operation() 會建立新的 Task（重要：不能直接傳 Task，因為 Task 一旦建立就已在執行）。重試邏輯的關鍵：try/catch 在迴圈內，catch 後 await Task.Delay 再繼續迴圈。最後一次失敗後用 throw new Exception(..., lastException) 保留原始例外鏈。"
+        },
+        {
+          "id": 7,
+          "type": "debugging",
+          "question": "以下非同步程式碼有 1 處嚴重錯誤（async void），請找出並修正：",
+          "buggyCode": "public class DataService\n{\n    public async void LoadDataAsync()  // 問題：async void\n    {\n        await Task.Delay(1000);\n        throw new Exception(\"載入資料失敗！\");\n    }\n}\n\nstatic async Task Main()\n{\n    var service = new DataService();\n    try\n    {\n        // 期望能捕捉例外，但 async void 的例外無法在這裡捕捉\n        await service.LoadDataAsync();  // 其實無法 await！\n        Console.WriteLine(\"載入成功\");\n    }\n    catch (Exception ex)\n    {\n        Console.WriteLine($\"捕捉到：{ex.Message}\");  // 永遠不會執行\n    }\n}",
+          "answer": "public class DataService\n{\n    // [修正] async void → async Task\n    public async Task LoadDataAsync()\n    {\n        await Task.Delay(1000);\n        throw new Exception(\"載入資料失敗！\");\n    }\n}\n\nstatic async Task Main()\n{\n    var service = new DataService();\n    try\n    {\n        await service.LoadDataAsync();  // 現在可以正確 await\n        Console.WriteLine(\"載入成功\");\n    }\n    catch (Exception ex)\n    {\n        // 可以正確捕捉例外\n        Console.WriteLine($\"捕捉到：{ex.Message}\");  // 「載入資料失敗！」\n    }\n}",
+          "explanation": "async void 有三大問題：(1) 呼叫端無法 await 它；(2) 拋出的例外無法被 try/catch 捕捉（例外直接傳給 SynchronizationContext，通常導致程式崩潰）；(3) 呼叫端不知道方法何時完成。除了 UI 事件處理器（如 Button_Click），一律使用 async Task。"
+        },
+        {
+          "id": 8,
+          "type": "debugging",
+          "question": "以下程式碼有 1 處可能造成死鎖（Deadlock）的問題，請找出並說明正確的非同步寫法：",
+          "buggyCode": "// 在同步方法中強制等待非同步結果\npublic class ReportService\n{\n    public string GetReport()\n    {\n        // 問題：在同步脈絡（如 ASP.NET、WinForms）中\n        // .Result 或 .Wait() 會造成死鎖\n        string data = FetchReportAsync().Result;  // 危險！\n        return data;\n    }\n\n    private async Task<string> FetchReportAsync()\n    {\n        await Task.Delay(500);\n        return \"報表內容\";\n    }\n}",
+          "answer": "public class ReportService\n{\n    // [修正方式一] 將呼叫端改為 async（推薦，從底層向上 async）\n    public async Task<string> GetReportAsync()\n    {\n        string data = await FetchReportAsync();  // 正確 await\n        return data;\n    }\n\n    // [修正方式二] 若非同步方法用了 ConfigureAwait(false)\n    // 可在同步方法中安全使用 .Result（library 程式碼的模式）\n    public string GetReportSync()\n    {\n        // 只有確保 FetchReportAsync 完全使用 ConfigureAwait(false) 時才安全\n        string data = FetchReportAsync().GetAwaiter().GetResult();\n        return data;\n    }\n\n    private async Task<string> FetchReportAsync()\n    {\n        await Task.Delay(500).ConfigureAwait(false);  // 不捕捉同步脈絡\n        return \"報表內容\";\n    }\n}",
+          "explanation": "死鎖原因：在 ASP.NET/WinForms 中，await 完成後預設會回到原始同步脈絡（SynchronizationContext）繼續執行。若同步脈絡的執行緒因 .Result 被阻塞，等待 await 完成，而 await 又在等待同步脈絡釋放→形成死鎖。正確解法：(1) 全面使用 async（async all the way down）；(2) Library 程式碼在所有 await 後加 ConfigureAwait(false)。"
+        },
+        {
+          "id": 9,
+          "type": "debugging",
+          "question": "以下程式碼有 1 處錯誤（忘記 await），請找出並修正，並說明忘記 await 的後果：",
+          "buggyCode": "public async Task SaveToFileAsync(string content, string path)\n{\n    // 模擬非同步寫入\n    await File.WriteAllTextAsync(path, content);\n    Console.WriteLine($\"已儲存到 {path}\");\n}\n\nstatic async Task Main()\n{\n    // 問題：沒有 await，Task 未被等待\n    SaveToFileAsync(\"Hello World\", \"output.txt\");\n\n    Console.WriteLine(\"程式結束\");  // 可能在儲存完成前就印出\n}",
+          "answer": "public async Task SaveToFileAsync(string content, string path)\n{\n    await File.WriteAllTextAsync(path, content);\n    Console.WriteLine($\"已儲存到 {path}\");\n}\n\nstatic async Task Main()\n{\n    // [修正] 加上 await\n    await SaveToFileAsync(\"Hello World\", \"output.txt\");\n\n    Console.WriteLine(\"程式結束\");  // 儲存完成後才印出\n}",
+          "explanation": "忘記 await 的後果：(1) 呼叫端不等待 Task 完成，繼續執行後面的程式碼（競態條件）；(2) 若 Task 內拋出例外，例外被靜默忽略（Task 進入 Faulted 狀態，但沒有人 await 它，例外不會被拋出）；(3) 程式可能在非同步操作完成前就結束（特別在 Console 應用）。C# 編譯器會給 CS4014 警告：「呼叫未等待」。"
+        },
+        {
+          "id": 10,
+          "type": "debugging",
+          "question": "以下程式碼有 1 處錯誤（WhenAll 結果取用方式），請找出並修正：",
+          "buggyCode": "static async Task Main()\n{\n    Task<int> t1 = Task.FromResult(10);\n    Task<int> t2 = Task.FromResult(20);\n    Task<int> t3 = Task.FromResult(30);\n\n    // 問題：WhenAll 回傳 Task<int[]>，但這裡取得的是 Task，不是 int[]\n    Task allTask = Task.WhenAll(t1, t2, t3);\n    await allTask;\n\n    // 嘗試從 allTask 取結果（但 Task 沒有 Result 屬性，只有 Task<T> 才有）\n    Console.WriteLine(allTask.Result);  // 錯誤\n}",
+          "answer": "static async Task Main()\n{\n    Task<int> t1 = Task.FromResult(10);\n    Task<int> t2 = Task.FromResult(20);\n    Task<int> t3 = Task.FromResult(30);\n\n    // [修正] 用 Task<int[]> 接收 WhenAll 的回傳型別\n    Task<int[]> allTask = Task.WhenAll(t1, t2, t3);\n    int[] results = await allTask;  // await Task<int[]> 得到 int[]\n\n    Console.WriteLine(string.Join(\", \", results));  // 10, 20, 30\n    Console.WriteLine($\"總和：{results.Sum()}\");     // 60\n\n    // 更簡潔的寫法：\n    int[] r = await Task.WhenAll(\n        Task.FromResult(10),\n        Task.FromResult(20),\n        Task.FromResult(30));\n    Console.WriteLine(r.Sum());  // 60\n}",
+          "explanation": "Task.WhenAll(Task<T> t1, Task<T> t2, ...) 回傳 Task<T[]>（所有結果的陣列）。若宣告為 Task 而非 Task<int[]>，就遺失了型別資訊，無法直接取得結果陣列。await Task<int[]> 後得到 int[] 陣列，結果順序與 WhenAll 參數順序相同（不是完成順序）。"
+        },
+        {
+          "id": 11,
+          "type": "multiple-choice",
+          "question": "關於 async void 和 async Task 的差異，以下敘述何者**正確**？",
+          "options": [
+            "A. async void 可以被 await，async Task 不能",
+            "B. async void 中拋出的例外無法被呼叫端的 try/catch 捕捉，async Task 可以",
+            "C. async void 的效能比 async Task 好，應盡量使用 async void",
+            "D. async void 和 async Task 的例外處理方式完全相同"
+          ],
+          "answer": "B",
+          "explanation": "B 正確：async void 方法的例外會直接傳給當前的 SynchronizationContext（在 Console App 中直接崩潰），呼叫端 try/catch 無法捕捉。async Task 的例外儲存在 Task 中，await 時重新拋出，可正常捕捉。A 錯：async void 不能被 await，async Task 才能。C 錯：async void 限制更多，只在事件處理器中使用。D 錯：例外處理方式完全不同。"
+        },
+        {
+          "id": 12,
+          "type": "multiple-choice",
+          "question": "以下關於 Task.WhenAll 和 Task.WhenAny 的敘述，何者**正確**？",
+          "options": [
+            "A. WhenAll 等待最先完成的 Task，WhenAny 等待全部 Task 完成",
+            "B. WhenAll 等待全部完成，若有 Task 失敗則全部結果都無法取得",
+            "C. WhenAll 等待全部 Task 完成，WhenAny 等待第一個完成的 Task 即繼續",
+            "D. WhenAny 完成後，其他尚未完成的 Task 會自動被取消"
+          ],
+          "answer": "C",
+          "explanation": "C 正確：WhenAll 等所有 Task 都完成（或有 Task 失敗）才繼續；WhenAny 只要有一個 Task 完成就繼續，其他 Task 仍在執行中。A 錯：WhenAll 和 WhenAny 的說明對調了。B 錯：WhenAll 有 Task 失敗時，await 拋出例外，但個別 Task 的 Result 仍可取得（成功的 Task）。D 錯：WhenAny 後其他 Task 繼續在背景執行，不會自動取消，需主動 CancellationToken 取消。"
+        }
+      ]
+    },
+    {
+      "id": "exception-handling",
+      "title": "例外處理 (Exception Handling)",
+      "content": "例外處理讓程式在發生錯誤時能優雅地回應，而非直接崩潰。C# 使用 try/catch/finally 結構。\n\n**基本結構**：\n- `try`：放可能拋出例外的程式碼\n- `catch(ExceptionType ex)`：捕捉特定型別的例外，可有多個 catch 區塊\n- `finally`：無論是否發生例外**一定執行**（連 return 也擋不住），用於清理資源\n- `throw`：重新拋出例外；`throw ex` 會重置呼叫堆疊（stack trace），應避免\n\n**catch 順序**：**子類別要在父類別前面**。若先寫 `catch(Exception)`，後面所有 catch 永遠不會執行（編譯警告）。\n\n**when 過濾子句**（C# 6+）：`catch(Exception ex) when (條件)` — 只有條件為 true 才進入此 catch，不重置 stack trace。\n\n**自訂 Exception**：繼承 `Exception`（或其子類），通常提供至少三個建構子（訊息、訊息+內部例外、無參數）。命名慣例：以 `Exception` 結尾。\n\n**IDisposable 與 using**：實作 `IDisposable` 的物件（如 FileStream、SqlConnection）應用 `using` 宣告或 `using(...){}` 區塊，確保 `Dispose()` 即使例外也會被呼叫（等同 try/finally）。\n\n**常見例外型別**：`NullReferenceException`、`ArgumentNullException`、`ArgumentException`、`ArgumentOutOfRangeException`、`InvalidOperationException`、`NotSupportedException`、`NotImplementedException`、`OverflowException`、`IndexOutOfRangeException`、`KeyNotFoundException`、`DivideByZeroException`。",
+      "codeExample": "// ── 基本 try/catch/finally ──\npublic static int Divide(int a, int b)\n{\n    try\n    {\n        return a / b;  // b=0 時拋 DivideByZeroException\n    }\n    catch (DivideByZeroException ex)\n    {\n        Console.WriteLine($\"除法錯誤：{ex.Message}\");\n        return 0;\n    }\n    finally\n    {\n        Console.WriteLine(\"finally 一定執行\");  // 無論如何都跑\n    }\n}\n\n// ── 自訂 Exception ──\npublic class InsufficientFundsException : Exception\n{\n    public decimal Amount { get; }\n    public decimal Balance { get; }\n\n    public InsufficientFundsException(decimal amount, decimal balance)\n        : base($\"餘額不足：需要 {amount:C}，目前 {balance:C}\")\n    {\n        Amount = amount;\n        Balance = balance;\n    }\n\n    // 串接內部例外的建構子（標準做法）\n    public InsufficientFundsException(string message, Exception inner)\n        : base(message, inner) { }\n}\n\n// ── throw vs throw ex ──\nvoid BadRethrow()\n{\n    try { throw new Exception(\"原始\"); }\n    catch (Exception ex) { throw ex; }  // 壞：重置 stack trace\n}\n\nvoid GoodRethrow()\n{\n    try { throw new Exception(\"原始\"); }\n    catch { throw; }  // 好：保留原始 stack trace\n}\n\n// ── when 過濾子句 ──\ntry\n{\n    // ...\n}\ncatch (HttpRequestException ex) when (ex.Message.Contains(\"404\"))\n{\n    Console.WriteLine(\"找不到資源\");  // 只在 404 時進入\n}\ncatch (HttpRequestException ex) when (ex.Message.Contains(\"500\"))\n{\n    Console.WriteLine(\"伺服器錯誤\");  // 只在 500 時進入\n}\n\n// ── using (IDisposable) ──\nusing var stream = new FileStream(\"data.txt\", FileMode.Open);\n// 離開 using 範圍自動呼叫 stream.Dispose()，等同 try/finally",
+      "keyPoints": [
+        "catch 順序：子類別（具體）在前，父類別（Exception）在後；順序錯誤導致後面的 catch 永遠不執行",
+        "throw（無引數）保留原始 stack trace；throw ex 重置 stack trace 丟失錯誤位置——一律用 throw",
+        "finally 一定執行（包含 try 有 return 的情況），適合釋放資源；using 是 try/finally 的語法糖",
+        "自訂 Exception 繼承 Exception，命名以 Exception 結尾，提供至少含 message 和 message+inner 的建構子",
+        "when 子句：catch(Exception ex) when (condition)，條件不符就跳過此 catch 往下找，不影響 stack trace"
+      ],
+      "exercises": [
+        {
+          "id": 1,
+          "type": "coding",
+          "question": "請手寫一個 ParsePositiveInt(string input) 方法，將字串轉換為正整數：(1) 若 input 為 null/空字串，拋 ArgumentNullException；(2) 若無法解析為整數，拋 FormatException（包含原始 input 值）；(3) 若值不是正數，拋 ArgumentOutOfRangeException。呼叫端用 try/catch/finally 依序捕捉這三種例外。",
+          "answer": "public static int ParsePositiveInt(string? input)\n{\n    if (string.IsNullOrWhiteSpace(input))\n        throw new ArgumentNullException(nameof(input), \"輸入不可為空\");\n\n    if (!int.TryParse(input, out int value))\n        throw new FormatException($\"無法將 '{input}' 解析為整數\");\n\n    if (value <= 0)\n        throw new ArgumentOutOfRangeException(nameof(input), value, \"值必須大於零\");\n\n    return value;\n}\n\n// 測試\nstring[] inputs = { \"42\", \"-5\", \"abc\", \"\", \"100\" };\nforeach (string s in inputs)\n{\n    try\n    {\n        int result = ParsePositiveInt(s);\n        Console.WriteLine($\"成功：{result}\");\n    }\n    catch (ArgumentNullException ex)\n    {\n        Console.WriteLine($\"空值錯誤：{ex.Message}\");\n    }\n    catch (FormatException ex)\n    {\n        Console.WriteLine($\"格式錯誤：{ex.Message}\");\n    }\n    catch (ArgumentOutOfRangeException ex)\n    {\n        Console.WriteLine($\"範圍錯誤：{ex.Message}\");\n    }\n    finally\n    {\n        Console.WriteLine($\"  → 處理完畢：'{s}'\");  // 每次都執行\n    }\n}",
+          "explanation": "Guard Clause 模式：在方法開頭用 if + throw 驗證前置條件，比在方法中間驗證更清晰。catch 的順序：ArgumentNullException 和 ArgumentOutOfRangeException 都是 ArgumentException 的子類，所以它們要寫在更一般的 catch 之前（若有 catch(ArgumentException) 也必須放在前面）。finally 在每個 try 結束後都執行。"
+        },
+        {
+          "id": 2,
+          "type": "coding",
+          "question": "請設計三個自訂例外類別：ValidationException（基底）、RequiredFieldException（繼承 ValidationException，欄位名稱）、ValueRangeException（繼承 ValidationException，欄位名稱、最小值、最大值）。寫一個 ValidateAge(int age) 方法，age 為空時丟 RequiredFieldException，超範圍丟 ValueRangeException，呼叫端用 when 子句分別處理。",
+          "answer": "// 自訂例外層次結構\npublic class ValidationException : Exception\n{\n    public ValidationException(string message) : base(message) { }\n    public ValidationException(string message, Exception inner) : base(message, inner) { }\n}\n\npublic class RequiredFieldException : ValidationException\n{\n    public string FieldName { get; }\n\n    public RequiredFieldException(string fieldName)\n        : base($\"欄位 '{fieldName}' 為必填\")\n    {\n        FieldName = fieldName;\n    }\n}\n\npublic class ValueRangeException : ValidationException\n{\n    public string FieldName { get; }\n    public int Min { get; }\n    public int Max { get; }\n\n    public ValueRangeException(string fieldName, int min, int max, int actual)\n        : base($\"欄位 '{fieldName}' 的值 {actual} 不在允許範圍 [{min}, {max}]\")\n    {\n        FieldName = fieldName; Min = min; Max = max;\n    }\n}\n\npublic static void ValidateAge(int? age)\n{\n    if (age == null)\n        throw new RequiredFieldException(\"年齡\");\n    if (age < 0 || age > 150)\n        throw new ValueRangeException(\"年齡\", 0, 150, age.Value);\n}\n\n// 測試 + when 子句\nvoid Test(int? age)\n{\n    try { ValidateAge(age); Console.WriteLine($\"年齡 {age} 驗證通過\"); }\n    catch (ValidationException ex) when (ex is RequiredFieldException rf)\n        => Console.WriteLine($\"必填：{rf.FieldName}\");\n    catch (ValidationException ex) when (ex is ValueRangeException vr)\n        => Console.WriteLine($\"範圍錯誤：{vr.FieldName} 應在 {vr.Min}~{vr.Max}\");\n    catch (ValidationException ex)\n        => Console.WriteLine($\"驗證失敗：{ex.Message}\");  // 其他 ValidationException\n}\nTest(null); Test(200); Test(25);",
+          "explanation": "自訂例外應繼承最接近的現有例外類別（ValidationException 繼承 Exception）。when 子句可搭配模式比對（is RequiredFieldException rf）在捕捉時同時檢查型別並取得具體物件。這比用多個 catch 加 as 轉型更簡潔。"
+        },
+        {
+          "id": 3,
+          "type": "coding",
+          "question": "請實作一個 SafeFileReader 類別，使用 IDisposable 模式：(1) 實作 IDisposable，有 bool _disposed 欄位防止重複 Dispose；(2) ReadLine() 方法在已 Dispose 後拋 ObjectDisposedException；(3) 在測試中用 using 確保資源釋放，並模擬讀取時例外。",
+          "answer": "public class SafeFileReader : IDisposable\n{\n    private StreamReader? _reader;\n    private bool _disposed = false;\n    public string FilePath { get; }\n\n    public SafeFileReader(string filePath)\n    {\n        FilePath = filePath;\n        _reader = new StreamReader(filePath);\n    }\n\n    public string? ReadLine()\n    {\n        // 已 Dispose 後不可使用\n        if (_disposed)\n            throw new ObjectDisposedException(nameof(SafeFileReader),\n                $\"檔案讀取器 '{FilePath}' 已被釋放\");\n\n        return _reader?.ReadLine();\n    }\n\n    // IDisposable 實作\n    public void Dispose()\n    {\n        Dispose(true);\n        GC.SuppressFinalize(this);  // 告訴 GC 不需呼叫 Finalizer\n    }\n\n    protected virtual void Dispose(bool disposing)\n    {\n        if (_disposed) return;  // 防止重複 Dispose\n\n        if (disposing)\n        {\n            _reader?.Dispose();  // 釋放 managed 資源\n            _reader = null;\n        }\n        _disposed = true;\n    }\n}\n\n// 測試\ntry\n{\n    // using 確保即使例外也會 Dispose\n    using var reader = new SafeFileReader(\"test.txt\");\n    string? line;\n    while ((line = reader.ReadLine()) != null)\n        Console.WriteLine(line);\n}  // 這裡自動呼叫 Dispose()\ncatch (FileNotFoundException ex)\n{\n    Console.WriteLine($\"找不到檔案：{ex.Message}\");\n}",
+          "explanation": "標準 IDisposable 模式：(1) bool _disposed 旗標防止重複釋放；(2) Dispose(bool disposing) 分別處理 managed（disposing=true）和 unmanaged 資源；(3) GC.SuppressFinalize 避免重複清理。using 等同於 try { } finally { obj.Dispose(); }。"
+        },
+        {
+          "id": 4,
+          "type": "coding",
+          "question": "請用 when 過濾子句實作一個「智慧重試」方法：RetryWithCondition(Action operation, int maxRetries, Func<Exception, bool> shouldRetry)。只有當 shouldRetry(ex) 回傳 true 時才重試，否則立即重新拋出。測試：只對 HttpRequestException（連線逾時）重試，其他例外直接拋出。",
+          "answer": "public static void RetryWithCondition(\n    Action operation,\n    int maxRetries,\n    Func<Exception, bool> shouldRetry)\n{\n    int attempt = 0;\n    while (true)\n    {\n        try\n        {\n            attempt++;\n            operation();\n            return;  // 成功直接返回\n        }\n        catch (Exception ex) when (shouldRetry(ex) && attempt < maxRetries)\n        {\n            // when 子句：只有可重試且未超過次數時才進此 catch\n            Console.WriteLine($\"第 {attempt} 次失敗，重試中：{ex.Message}\");\n            Thread.Sleep(500 * attempt);  // 指數退避（簡化版）\n        }\n        catch (Exception ex) when (shouldRetry(ex) && attempt >= maxRetries)\n        {\n            throw new Exception($\"重試 {maxRetries} 次後仍失敗\", ex);\n        }\n        // 不符合 shouldRetry 條件的例外：直接穿透（不被捕捉）\n    }\n}\n\n// 測試\nint callCount = 0;\nvoid UnreliableCall()\n{\n    callCount++;\n    if (callCount <= 2) throw new HttpRequestException(\"連線逾時\");\n    if (callCount == 3) Console.WriteLine(\"呼叫成功！\");\n}\n\nRetryWithCondition(\n    UnreliableCall,\n    maxRetries: 3,\n    shouldRetry: ex => ex is HttpRequestException  // 只重試 HTTP 例外\n);\n\n// 測試不重試的例外\ntry\n{\n    RetryWithCondition(\n        () => throw new ArgumentException(\"參數錯誤\"),  // 不應重試\n        maxRetries: 3,\n        shouldRetry: ex => ex is HttpRequestException);\n}\ncatch (ArgumentException ex)\n{\n    Console.WriteLine($\"直接拋出（不重試）：{ex.Message}\");\n}",
+          "explanation": "when 子句的強大之處：可在 catch 中加入複雜條件，且不影響 stack trace。若 when 條件為 false，此 catch 不會捕捉例外，例外繼續往外傳（讓其他 catch 或呼叫端處理）。多個 catch 搭配 when 可實作細緻的錯誤路由。"
+        },
+        {
+          "id": 5,
+          "type": "coding",
+          "question": "請展示 try/catch/finally 中 return 的執行順序：(1) try 有 return 時，finally 是否執行？(2) finally 也有 return 時，哪個 return 值最終回傳？(3) 在 async 方法中 finally 是否也保證執行？",
+          "answer": "// (1) try 有 return 時，finally 一定執行\npublic static int TestFinally()\n{\n    try\n    {\n        Console.WriteLine(\"try: 要 return 10\");\n        return 10;  // finally 仍會在 return 前執行\n    }\n    finally\n    {\n        Console.WriteLine(\"finally: 我執行了！\");  // 這行會印出\n        // 注意：finally 不能阻止 return，只是在 return 前執行\n    }\n}\n// 輸出：try: 要 return 10\n//       finally: 我執行了！\n// 回傳值：10\n\n// (2) finally 也有 return：finally 的 return 覆蓋 try 的 return\npublic static int FinallyOverridesReturn()\n{\n    try\n    {\n        return 10;  // 被 finally 的 return 覆蓋\n    }\n    finally\n    {\n        return 99;  // ⚠ 這會覆蓋 try 的回傳值（不建議這樣寫）\n    }\n}\n// 回傳值：99（不是 10！）\n// 編譯器會給警告：finally 中的 return 會吃掉 try 中的回傳值\n\n// (3) async 方法的 finally\npublic static async Task<int> AsyncWithFinally()\n{\n    try\n    {\n        await Task.Delay(100);\n        return 42;\n    }\n    finally\n    {\n        // async 方法的 finally 在 await 完成後、return 前執行\n        Console.WriteLine(\"async finally 執行了\");  // 一定會執行\n        await Task.Delay(50);  // C# 也允許 finally 中 await（C# 6+）\n    }\n}\n\n// 驗證\nConsole.WriteLine(TestFinally());           // 10\nConsole.WriteLine(FinallyOverridesReturn()); // 99（避免此寫法）\nConsole.WriteLine(AsyncWithFinally().Result); // 42",
+          "explanation": "finally 執行時機：在 try 或 catch 的 return/throw 之前執行。若 finally 也有 return，它會覆蓋 try/catch 的回傳值（考試常考陷阱）。async 方法的 finally 同樣保證在非同步操作完成後、方法真正結束前執行，C# 6+ 也允許在 finally 中使用 await。"
+        },
+        {
+          "id": 6,
+          "type": "debugging",
+          "question": "以下程式碼有 1 處錯誤（catch 順序），請找出並修正：",
+          "buggyCode": "public static void ProcessFile(string path)\n{\n    try\n    {\n        string content = File.ReadAllText(path);\n        Console.WriteLine(content);\n    }\n    catch (Exception ex)  // 問題：Exception 放在最前面\n    {\n        Console.WriteLine($\"一般錯誤：{ex.Message}\");\n    }\n    catch (FileNotFoundException ex)  // 永遠不會執行！\n    {\n        Console.WriteLine($\"找不到檔案：{ex.FileName}\");\n    }\n    catch (UnauthorizedAccessException ex)  // 永遠不會執行！\n    {\n        Console.WriteLine($\"沒有權限：{ex.Message}\");\n    }\n}",
+          "answer": "public static void ProcessFile(string path)\n{\n    try\n    {\n        string content = File.ReadAllText(path);\n        Console.WriteLine(content);\n    }\n    // [修正] 具體的子類例外放前面，父類 Exception 放最後\n    catch (FileNotFoundException ex)\n    {\n        Console.WriteLine($\"找不到檔案：{ex.FileName}\");\n    }\n    catch (UnauthorizedAccessException ex)\n    {\n        Console.WriteLine($\"沒有權限：{ex.Message}\");\n    }\n    catch (IOException ex)  // FileNotFoundException 的父類，仍在 Exception 前\n    {\n        Console.WriteLine($\"IO 錯誤：{ex.Message}\");\n    }\n    catch (Exception ex)  // 最後才放 Exception（catch-all）\n    {\n        Console.WriteLine($\"未預期的錯誤：{ex.Message}\");\n    }\n}",
+          "explanation": "catch 區塊由上往下比對，第一個型別相符的就進入。Exception 是所有例外的基底類別，放在最前面會攔截所有例外，後面的具體 catch 永遠無法執行（CS0160 編譯錯誤或警告）。正確順序：最具體的子類在前，最一般的 Exception 在最後作為 catch-all。"
+        },
+        {
+          "id": 7,
+          "type": "debugging",
+          "question": "以下程式碼有 1 處錯誤（throw vs throw ex），請找出並說明差異：",
+          "buggyCode": "public static void CallExternalService()\n{\n    try\n    {\n        // 模擬呼叫外部服務\n        throw new InvalidOperationException(\"外部服務無回應\");\n    }\n    catch (InvalidOperationException ex)\n    {\n        Console.WriteLine($\"記錄錯誤：{ex.Message}\");\n        // 問題：throw ex 會重置 stack trace\n        throw ex;  // 錯誤的重新拋出方式\n    }\n}",
+          "answer": "public static void CallExternalService()\n{\n    try\n    {\n        throw new InvalidOperationException(\"外部服務無回應\");\n    }\n    catch (InvalidOperationException ex)\n    {\n        Console.WriteLine($\"記錄錯誤：{ex.Message}\");\n        // [修正] 用 throw（不加 ex）保留原始 stack trace\n        throw;  // 正確：保留原始的呼叫堆疊資訊\n\n        // 若要包裝成新例外（加入更多上下文），這樣寫：\n        // throw new ApplicationException(\"呼叫外部服務失敗\", ex);  // ex 作為 inner exception\n    }\n}",
+          "explanation": "throw ex 的問題：重置例外的 stack trace（堆疊追蹤），讓 StackTrace 屬性顯示 throw ex 那一行，而非原始例外發生的位置，使除錯困難。throw（無引數）保留原始 stack trace。若需要包裝例外並加入上下文，用 throw new SomeException(\"說明\", ex) 將原始例外作為 InnerException。"
+        },
+        {
+          "id": 8,
+          "type": "debugging",
+          "question": "以下程式碼有 1 處邏輯錯誤（finally 中改變回傳值），請找出並說明：",
+          "buggyCode": "public static bool TrySaveData(string data)\n{\n    bool success = false;\n    try\n    {\n        // 模擬存檔\n        Console.WriteLine($\"儲存：{data}\");\n        success = true;\n        return success;  // 期望回傳 true\n    }\n    catch (Exception ex)\n    {\n        Console.WriteLine($\"失敗：{ex.Message}\");\n        return false;\n    }\n    finally\n    {\n        // 問題：finally 中修改 success 不影響已決定的回傳值\n        // 但若 finally 有 return，就會覆蓋！\n        success = false;  // 這行改變了 success，但不影響 return 值\n        // return false;  // 若取消這行的注解，就會覆蓋 try 的 return true！\n        Console.WriteLine($\"finally 中 success = {success}\");  // false\n    }\n}\n\n// 呼叫端\nbool result = TrySaveData(\"測試\");\nConsole.WriteLine($\"result = {result}\");  // 預期是？",
+          "answer": "public static bool TrySaveData(string data)\n{\n    bool success = false;\n    try\n    {\n        Console.WriteLine($\"儲存：{data}\");\n        success = true;\n        return success;  // 回傳值 true 已被記錄，finally 改 success 不影響\n    }\n    catch (Exception ex)\n    {\n        Console.WriteLine($\"失敗：{ex.Message}\");\n        return false;\n    }\n    finally\n    {\n        // [說明] success = false 改的是區域變數，不影響已記錄的回傳值\n        // result 仍然是 true（因為 try 的 return 值在 finally 前已確定）\n        success = false;\n        Console.WriteLine($\"finally 中 success = {success}\");  // false\n        // 若要真的改變回傳值，需在 finally 中加 return false（但非常不建議）\n    }\n}\n// result = true（finally 改 success 不影響已決定的回傳值）",
+          "explanation": "C# 的 return 值在執行 finally 前就已被「記錄」（暫存在評估堆疊中）。finally 中修改局部變數不影響已決定的回傳值，除非在 finally 中再寫一次 return（那才會覆蓋）。這個細節是考試中關於 finally 行為的常見陷阱。"
+        },
+        {
+          "id": 9,
+          "type": "multiple-choice",
+          "question": "關於 try/catch/finally 的執行順序，以下敘述何者**正確**？",
+          "options": [
+            "A. 若 try 區塊中沒有例外，finally 區塊不會執行",
+            "B. catch 區塊捕捉例外後，finally 區塊不會執行",
+            "C. 無論 try 是否拋出例外、是否有 return，finally 區塊都一定執行",
+            "D. finally 中的 return 語句是非法的，無法通過編譯"
+          ],
+          "answer": "C",
+          "explanation": "C 正確：finally 在以下所有情況都會執行：(1) try 正常結束；(2) try 有 return；(3) catch 捕捉並處理例外；(4) catch 再次 throw。唯一不執行的情況是 Environment.FailFast() 強制終止程序，或 StackOverflowException 等無法恢復的例外。A 和 B 都錯：finally 一定執行。D 錯：finally 中的 return 是合法的（雖然不建議），且會覆蓋 try 的回傳值。"
+        },
+        {
+          "id": 10,
+          "type": "multiple-choice",
+          "question": "以下關於自訂 Exception 的設計，何者是**最佳實踐**？",
+          "options": [
+            "A. 自訂 Exception 應繼承 object，不繼承 Exception",
+            "B. 自訂 Exception 應直接繼承 Exception，命名不需要以 Exception 結尾",
+            "C. 自訂 Exception 應繼承最接近語意的 Exception 子類（如 ArgumentException），並提供含 message 和 message+innerException 的建構子",
+            "D. 自訂 Exception 不應有自訂屬性，只能用 Message 字串傳遞資訊"
+          ],
+          "answer": "C",
+          "explanation": "C 正確：(1) 繼承最語意相近的現有類別（ArgumentException、InvalidOperationException 等），讓呼叫端可用父類 catch；(2) 提供至少兩個建構子：只有 message 的，以及 message + innerException 的（保留原始例外鏈）；(3) 命名以 Exception 結尾（C# 慣例）；(4) 可加自訂屬性傳遞結構化錯誤資訊（如 FieldName、Amount）。"
+        }
+      ]
+    },
+    {
+      "id": "debugging",
+      "title": "除錯題專區（模擬考試題型）",
+      "content": "本節完全模擬考試的除錯題型：每題給一段有 bug 的 C# 程式碼，要求找出錯誤並手寫修正版本。涵蓋 NullReferenceException、IndexOutOfRange、邏輯錯誤、OOP 設計問題、LINQ 誤用、非同步陷阱、型別錯誤等常見 bug 類型。\n\n解題策略：(1) 先看類別/方法簽章，確認型別是否正確；(2) 追蹤資料流，注意 null 的可能性；(3) 檢查迴圈邊界（off-by-one）；(4) 確認覆寫/實作是否完整；(5) 注意語言特性陷阱（int 除法、string 比較等）。",
+      "codeExample": "// 解題時的 checklist：\n// 1. 方法回傳型別與 return 是否一致？\n// 2. 陣列/清單的索引是否越界？\n// 3. 物件使用前是否可能為 null？\n// 4. 是否需要 override 但用了 new？\n// 5. abstract 方法是否在子類都有實作？\n// 6. catch 的順序是否正確？\n// 7. async 方法是否忘記 await？\n// 8. delegate/event 的簽章是否符合？",
+      "keyPoints": [
+        "NullReferenceException：使用物件前先確認不為 null，使用 ?. 或 ?? 運算子防護",
+        "IndexOutOfRangeException：迴圈條件 i < arr.Length（不是 <=），注意 0-based 索引",
+        "int 除法截斷：5/2 = 2 不是 2.5，需要 (double)5/2 或 5.0/2",
+        "string 比較應用 string.Equals() 或 == 運算子，不要用 object.ReferenceEquals",
+        "foreach 迴圈中不可修改集合；需要修改則用 for 迴圈或先 ToList() 複製"
+      ],
+      "exercises": [
+        {
+          "id": 1,
+          "type": "debugging",
+          "question": "以下程式碼有 1 處錯誤（NullReferenceException），請找出並修正：",
+          "buggyCode": "public class Order\n{\n    public string? CustomerName { get; set; }\n    public List<string>? Items { get; set; }\n}\n\npublic static void PrintOrder(Order order)\n{\n    // 問題：order 或其屬性可能為 null\n    Console.WriteLine(order.CustomerName.ToUpper());\n    Console.WriteLine($\"共 {order.Items.Count} 項商品\");\n    foreach (string item in order.Items)\n        Console.WriteLine($\"  - {item}\");\n}",
+          "answer": "public static void PrintOrder(Order? order)\n{\n    // [修正] 檢查 order 本身\n    if (order == null)\n    {\n        Console.WriteLine(\"訂單為空\");\n        return;\n    }\n\n    // [修正] CustomerName 可能為 null，用 ?? 提供預設值\n    Console.WriteLine((order.CustomerName ?? \"未知客戶\").ToUpper());\n\n    // [修正] Items 可能為 null，用 ?. 和 ?? 防護\n    int count = order.Items?.Count ?? 0;\n    Console.WriteLine($\"共 {count} 項商品\");\n\n    if (order.Items != null)\n    {\n        foreach (string item in order.Items)\n            Console.WriteLine($\"  - {item}\");\n    }\n}",
+          "explanation": "NullReferenceException 防護三種方式：(1) if (x == null) 提前返回（Guard Clause）；(2) x?.Property 安全存取（null 時回傳 null 而非拋例外）；(3) x ?? defaultValue 提供預設值。nullable reference type（string?、List?）提醒開發者需要 null 檢查。"
+        },
+        {
+          "id": 2,
+          "type": "debugging",
+          "question": "以下程式碼有 1 處邏輯錯誤（陣列索引越界），請找出並修正：",
+          "buggyCode": "public static int SumArray(int[] arr)\n{\n    int sum = 0;\n    // 問題：索引從 0 到 Length，應該是 Length-1\n    for (int i = 0; i <= arr.Length; i++)\n    {\n        sum += arr[i];  // i == arr.Length 時越界！\n    }\n    return sum;\n}",
+          "answer": "public static int SumArray(int[] arr)\n{\n    int sum = 0;\n    // [修正] i < arr.Length（不是 <=）\n    for (int i = 0; i < arr.Length; i++)\n    {\n        sum += arr[i];\n    }\n    return sum;\n\n    // 更好的寫法：foreach 自動避免越界\n    // foreach (int n in arr) sum += n;\n    // 或 LINQ：return arr.Sum();\n}",
+          "explanation": "陣列索引從 0 到 Length-1，合法索引範圍是 [0, Length-1]。條件 i <= arr.Length 會在最後一次迭代（i = Length）造成 IndexOutOfRangeException。正確條件是 i < arr.Length。使用 foreach 或 LINQ 可完全避免索引越界問題。"
+        },
+        {
+          "id": 3,
+          "type": "debugging",
+          "question": "以下程式碼有 1 處型別錯誤（整數除法截斷），請找出並修正：",
+          "buggyCode": "public static double CalculateAverage(int[] scores)\n{\n    int sum = 0;\n    foreach (int score in scores)\n        sum += score;\n\n    // 問題：int / int = int（小數被截斷）\n    double average = sum / scores.Length;\n    return average;\n}\n\n// 測試\nint[] scores = { 1, 2, 3 };  // sum=6, length=3\ndouble avg = CalculateAverage(scores);\nConsole.WriteLine(avg);  // 預期 2.0，實際 2.0（此例剛好整除）\n\nint[] scores2 = { 1, 2 };  // sum=3, length=2\ndouble avg2 = CalculateAverage(scores2);\nConsole.WriteLine(avg2);  // 預期 1.5，實際 1.0（被截斷！）",
+          "answer": "public static double CalculateAverage(int[] scores)\n{\n    if (scores == null || scores.Length == 0)\n        throw new ArgumentException(\"scores 不可為空\");\n\n    int sum = 0;\n    foreach (int score in scores)\n        sum += score;\n\n    // [修正] 強制轉型為 double 再除\n    double average = (double)sum / scores.Length;\n    return average;\n\n    // 或：(double)sum / scores.Length\n    // 或：sum / (double)scores.Length\n    // 或直接用 LINQ：return scores.Average();\n}",
+          "explanation": "整數除法（int/int）結果仍是 int，小數部分被截斷（不是四捨五入）。修正：至少讓被除數或除數其中一個轉成 double/decimal，即 (double)sum / scores.Length。最簡潔的寫法是 scores.Average()（LINQ，回傳 double）。"
+        },
+        {
+          "id": 4,
+          "type": "debugging",
+          "question": "以下程式碼有 1 處錯誤（foreach 中修改集合），請找出並修正：",
+          "buggyCode": "public static List<int> RemoveNegatives(List<int> numbers)\n{\n    // 問題：在 foreach 中修改正在迭代的集合，拋 InvalidOperationException\n    foreach (int n in numbers)\n    {\n        if (n < 0)\n            numbers.Remove(n);  // 錯誤：迭代中修改集合\n    }\n    return numbers;\n}",
+          "answer": "// [修正方式一] 用 LINQ Where 過濾（最簡潔）\npublic static List<int> RemoveNegatives(List<int> numbers)\n{\n    return numbers.Where(n => n >= 0).ToList();\n}\n\n// [修正方式二] 反向 for 迴圈（從後往前刪除，索引不受影響）\npublic static List<int> RemoveNegativesFor(List<int> numbers)\n{\n    for (int i = numbers.Count - 1; i >= 0; i--)\n    {\n        if (numbers[i] < 0)\n            numbers.RemoveAt(i);\n    }\n    return numbers;\n}\n\n// [修正方式三] 先收集要刪的、再刪\npublic static List<int> RemoveNegativesCollect(List<int> numbers)\n{\n    var toRemove = numbers.Where(n => n < 0).ToList();\n    foreach (int n in toRemove)\n        numbers.Remove(n);\n    return numbers;\n}",
+          "explanation": "foreach 迭代期間不能修改被迭代的集合，否則拋出 InvalidOperationException（Collection was modified; enumeration operation may not execute）。三種修正方式：(1) LINQ Where（最簡潔，推薦）；(2) 反向 for 迴圈（從尾部刪起不影響前面索引）；(3) 先收集再刪（兩次遍歷）。"
+        },
+        {
+          "id": 5,
+          "type": "debugging",
+          "question": "以下程式碼有 1 處錯誤（string 比較陷阱），請找出並修正：",
+          "buggyCode": "public static bool IsAdmin(string userRole)\n{\n    // 問題：string 用 == 比較大小寫敏感，\"admin\" != \"Admin\" != \"ADMIN\"\n    // 但真正的問題是這裡其實沒有大小寫問題...讓我設計一個真實的陷阱\n    string expected = new string(new char[] { 'A', 'd', 'm', 'i', 'n' });\n    // 這個 string 和字面值 \"Admin\" 內容相同\n    // 在某些情況下，兩個 string 物件內容相同但參考不同\n    // 但 C# 的 == 對 string 比較的是值，所以這其實沒問題\n    // 真正的陷阱是這樣的：\n    return object.ReferenceEquals(userRole, \"Admin\");  // 問題！\n}",
+          "answer": "public static bool IsAdmin(string? userRole)\n{\n    // [修正] 用 string == 或 string.Equals 比較值，而非參考\n    // 方式一：== 運算子（C# 的 string 重載了 == 比較值）\n    return userRole == \"Admin\";\n\n    // 方式二：忽略大小寫比較（更健壯）\n    // return string.Equals(userRole, \"Admin\", StringComparison.OrdinalIgnoreCase);\n\n    // 不要用：object.ReferenceEquals → 比較記憶體位址，不可靠\n    // 不要用：userRole.CompareTo(\"Admin\") == 0 → 功能正確但語意不清\n}",
+          "explanation": "object.ReferenceEquals 比較的是記憶體位址（兩個物件是否是同一個實例），而非字串內容。雖然 C# 有字串駐留（string interning）讓相同字面值指向同一位址，但 new string(...) 建立的字串不一定與字面值共用位址。正確比較字串值用 == 或 string.Equals()。大小寫不敏感比較用 StringComparison.OrdinalIgnoreCase。"
+        },
+        {
+          "id": 6,
+          "type": "debugging",
+          "question": "以下程式碼有 2 處錯誤（Stack 實作的邊界問題），請找出並修正：",
+          "buggyCode": "public class IntStack\n{\n    private int[] _data = new int[10];\n    private int _top = 0;  // 問題1：應從 -1 開始\n\n    public bool IsEmpty => _top == 0;  // 問題1 的連帶影響\n\n    public void Push(int item)\n    {\n        _data[_top] = item;\n        _top++;\n    }\n\n    public int Pop()\n    {\n        if (IsEmpty) throw new InvalidOperationException(\"Stack 為空\");\n        // 問題2：先減再取，但索引計算有誤\n        return _data[_top];  // 問題2：應該是 _data[--_top] 或先減再取\n    }\n\n    public int Peek()\n    {\n        if (IsEmpty) throw new InvalidOperationException(\"Stack 為空\");\n        return _data[_top];  // 問題2 的連帶影響\n    }\n}",
+          "answer": "public class IntStack\n{\n    private int[] _data = new int[10];\n    private int _top = -1;  // [修正1] -1 表示空 Stack\n\n    public bool IsEmpty => _top < 0;  // [修正1] 空時 _top 為 -1\n    public int Count => _top + 1;\n\n    public void Push(int item)\n    {\n        if (_top >= _data.Length - 1)\n            throw new InvalidOperationException(\"Stack 已滿\");\n        _data[++_top] = item;  // 先加再寫：_top 先加 1 再指定\n    }\n\n    public int Pop()\n    {\n        if (IsEmpty) throw new InvalidOperationException(\"Stack 為空\");\n        // [修正2] 先讀頂端元素，再將 _top 減 1\n        return _data[_top--];  // 後置 -- ：先取值再減\n    }\n\n    public int Peek()\n    {\n        if (IsEmpty) throw new InvalidOperationException(\"Stack 為空\");\n        return _data[_top];  // [修正2] 只讀不減\n    }\n}",
+          "explanation": "Stack 用整數 _top 追蹤頂端索引，慣例是 -1 表示空（沒有元素）。Push：先 ++_top 再寫（前置加一）；Pop：先讀 _data[_top] 再 _top--（後置減一）。原本 _top=0 表示空，會讓 Push 先寫在索引 0 再加 _top，導致 Peek/Pop 讀到 _top=1 位置（差一個索引）。"
+        },
+        {
+          "id": 7,
+          "type": "debugging",
+          "question": "以下程式碼有 1 處錯誤（整數溢位），請找出並修正：",
+          "buggyCode": "public static long CalculateFactorial(int n)\n{\n    if (n < 0) throw new ArgumentException(\"n 不可為負\");\n    if (n == 0) return 1;\n\n    // 問題：用 int 累積乘積，n=13 時就溢位（int 最大約 21 億）\n    int result = 1;\n    for (int i = 1; i <= n; i++)\n    {\n        result *= i;  // 溢位時不拋例外，靜默得到錯誤結果\n    }\n    return result;  // 回傳 int 但宣告 long\n}",
+          "answer": "public static long CalculateFactorial(int n)\n{\n    if (n < 0) throw new ArgumentException(\"n 不可為負\");\n    if (n > 20) throw new ArgumentOutOfRangeException(nameof(n), \"n 超過 long 的範圍（最大 20）\");\n    if (n == 0) return 1;\n\n    // [修正] 用 long 累積乘積（long 最大約 9.2 × 10^18）\n    long result = 1;\n    for (int i = 1; i <= n; i++)\n    {\n        result *= i;\n    }\n    return result;\n\n    // 若需要更大的數，用 BigInteger（System.Numerics）\n    // checked 關鍵字讓整數溢位拋出 OverflowException（而非靜默）\n    // checked { result *= i; }  ← 可用於偵測溢位\n}",
+          "explanation": "int 的最大值是 2,147,483,647（約 21億），13! = 6,227,020,800 超過此值。C# 預設整數運算溢位是「靜默截斷」（不拋例外，只是結果錯誤）。修正：(1) 改用 long（最大 9.2×10^18，可表示 20!）；(2) 加上 checked 關鍵字讓溢位拋 OverflowException；(3) 加前置條件驗證 n <= 20。"
+        },
+        {
+          "id": 8,
+          "type": "debugging",
+          "question": "以下程式碼有 1 處錯誤（Dictionary 存取不存在的 key），請找出並修正（2種方式）：",
+          "buggyCode": "public static void CountWords(string text)\n{\n    var wordCount = new Dictionary<string, int>();\n    string[] words = text.Split(' ');\n\n    foreach (string word in words)\n    {\n        // 問題：第一次遇到 word 時，wordCount[word] 不存在\n        // 直接 [] 存取不存在的 key 會拋 KeyNotFoundException\n        wordCount[word] = wordCount[word] + 1;\n    }\n\n    foreach (var kvp in wordCount)\n        Console.WriteLine($\"{kvp.Key}: {kvp.Value}\");\n}",
+          "answer": "public static void CountWords(string text)\n{\n    var wordCount = new Dictionary<string, int>();\n    string[] words = text.Split(' ');\n\n    foreach (string word in words)\n    {\n        // [修正方式一] ContainsKey 檢查\n        if (wordCount.ContainsKey(word))\n            wordCount[word]++;\n        else\n            wordCount[word] = 1;\n    }\n\n    // [修正方式二] TryGetValue（更有效率）\n    var wordCount2 = new Dictionary<string, int>();\n    foreach (string word in words)\n    {\n        if (wordCount2.TryGetValue(word, out int count))\n            wordCount2[word] = count + 1;\n        else\n            wordCount2[word] = 1;\n    }\n\n    // [修正方式三] GetValueOrDefault（最簡潔）\n    var wordCount3 = new Dictionary<string, int>();\n    foreach (string word in words)\n        wordCount3[word] = wordCount3.GetValueOrDefault(word, 0) + 1;\n\n    foreach (var kvp in wordCount3)\n        Console.WriteLine($\"{kvp.Key}: {kvp.Value}\");\n}",
+          "explanation": "Dictionary 的 [] 存取：key 存在則取值，key 不存在則拋 KeyNotFoundException。三種安全存取方式：(1) ContainsKey 先判斷；(2) TryGetValue 原子操作（key 不存在時 out 參數為預設值）；(3) GetValueOrDefault（key 不存在時回傳指定預設值）。建議用 TryGetValue 或 GetValueOrDefault，效能和安全性都更好。"
+        },
+        {
+          "id": 9,
+          "type": "debugging",
+          "question": "以下程式碼有 1 處錯誤（switch 缺少 break 導致穿透），請找出並修正：",
+          "buggyCode": "public static string GetDayType(int day)\n{\n    string result = \"\";\n    switch (day)\n    {\n        case 1:\n            result = \"星期一\";\n            // 問題：沒有 break，會繼續執行下一個 case！\n        case 2:\n            result = \"星期二\";\n        case 3:\n            result = \"星期三\";\n            break;\n        case 6:\n        case 7:\n            result = \"週末\";  // case 6 和 7 共用，這是合法的\n            break;\n        default:\n            result = \"其他\";\n            break;\n    }\n    return result;\n}",
+          "answer": "public static string GetDayType(int day)\n{\n    // [修正方式一] 每個 case 加 break（傳統 switch）\n    string result;\n    switch (day)\n    {\n        case 1:\n            result = \"星期一\";\n            break;  // [修正] 加上 break\n        case 2:\n            result = \"星期二\";\n            break;  // [修正]\n        case 3:\n            result = \"星期三\";\n            break;\n        case 6:\n        case 7:\n            result = \"週末\";  // 空 case 穿透到下一個是合法的\n            break;\n        default:\n            result = \"其他\";\n            break;\n    }\n    return result;\n\n    // [修正方式二] switch expression（C# 8+，更簡潔）\n    // return day switch\n    // {\n    //     1 => \"星期一\", 2 => \"星期二\", 3 => \"星期三\",\n    //     4 => \"星期四\", 5 => \"星期五\",\n    //     6 or 7 => \"週末\",\n    //     _ => \"其他\"\n    // };\n}",
+          "explanation": "C# 的傳統 switch 中，有程式碼的 case 必須用 break（或 return/throw/continue）結尾，否則 CS0163 編譯錯誤。例外：空的 case（沒有任何程式碼）可以穿透到下一個 case（如 case 6: case 7:）。C# 8+ 的 switch expression 語法更簡潔且不需要 break。"
+        },
+        {
+          "id": 10,
+          "type": "debugging",
+          "question": "以下 Linked List 實作有 1 處邏輯錯誤（反轉鏈結串列），請找出並修正：",
+          "buggyCode": "public class ListNode\n{\n    public int Val;\n    public ListNode? Next;\n    public ListNode(int val) { Val = val; }\n}\n\npublic static ListNode? Reverse(ListNode? head)\n{\n    ListNode? prev = null;\n    ListNode? curr = head;\n\n    while (curr != null)\n    {\n        ListNode? next = curr.Next;  // 暫存下一個\n        curr.Next = prev;            // 反轉指向\n        // 問題：移動 prev 和 curr 的順序有誤\n        curr = prev;                 // 錯誤：curr 被賦值為 prev（往回走）\n        prev = next;                 // 錯誤：prev 被賦值為 next\n    }\n\n    return prev;  // prev 是新的頭節點\n}",
+          "answer": "public class ListNode\n{\n    public int Val;\n    public ListNode? Next;\n    public ListNode(int val) { Val = val; }\n}\n\npublic static ListNode? Reverse(ListNode? head)\n{\n    ListNode? prev = null;\n    ListNode? curr = head;\n\n    while (curr != null)\n    {\n        ListNode? next = curr.Next;  // 1. 先暫存下一個節點\n        curr.Next = prev;            // 2. 反轉：讓 curr 指向 prev\n        // [修正] 正確的移動順序\n        prev = curr;                 // 3. prev 往前移到 curr\n        curr = next;                 // 4. curr 往前移到 next\n    }\n\n    return prev;  // while 結束時 prev 是新的頭節點（原本的尾節點）\n}\n\n// 驗證\nListNode n1 = new(1); n1.Next = new(2); n1.Next.Next = new(3);\n// 1 → 2 → 3 → null\nListNode? rev = Reverse(n1);\n// 3 → 2 → 1 → null\nfor (ListNode? n = rev; n != null; n = n.Next)\n    Console.Write($\"{n.Val} \");  // 3 2 1",
+          "explanation": "反轉鏈結串列的正確步驟（在每個節點）：(1) 暫存 next 節點；(2) 讓 curr.Next 指向 prev（反轉）；(3) prev 移到 curr；(4) curr 移到 next。原始程式碼第 3 和第 4 步對調，導致 curr 和 prev 都移到錯誤位置，形成無窮迴圈或提前結束。"
+        },
+        {
+          "id": 11,
+          "type": "debugging",
+          "question": "以下二元搜尋樹的中序遍歷有 1 處錯誤，請找出並修正：",
+          "buggyCode": "public class TreeNode\n{\n    public int Val;\n    public TreeNode? Left, Right;\n    public TreeNode(int val) { Val = val; }\n}\n\n// 中序遍歷：Left → Root → Right（應由小到大）\npublic static void InOrder(TreeNode? root, List<int> result)\n{\n    if (root == null) return;\n\n    // 問題：順序錯誤（Root → Left → Right 是前序，不是中序）\n    result.Add(root.Val);   // 先加入根節點\n    InOrder(root.Left, result);\n    InOrder(root.Right, result);\n}",
+          "answer": "public static void InOrder(TreeNode? root, List<int> result)\n{\n    if (root == null) return;\n\n    // [修正] 中序：Left → Root → Right\n    InOrder(root.Left, result);   // 1. 先遞迴左子樹\n    result.Add(root.Val);          // 2. 再加入根節點\n    InOrder(root.Right, result);  // 3. 最後遞迴右子樹\n}\n\n// 驗證：BST 插入 5,3,7,1,4\nTreeNode bst = new(5);\nbst.Left = new(3); bst.Right = new(7);\nbst.Left.Left = new(1); bst.Left.Right = new(4);\n\nvar result = new List<int>();\nInOrder(bst, result);\nConsole.WriteLine(string.Join(\", \", result));  // 1, 3, 4, 5, 7（由小到大）\n\n// 三種遍歷順序：\n// InOrder（中序）：Left→Root→Right → BST 結果由小到大\n// PreOrder（前序）：Root→Left→Right → 適合複製樹結構\n// PostOrder（後序）：Left→Right→Root → 適合刪除節點",
+          "explanation": "BST 三種遍歷的程式碼差異只在 result.Add(root.Val) 的位置：中序在兩個遞迴呼叫之間，前序在之前，後序在之後。中序遍歷 BST 必然產生排序結果（由小到大），這是 BST 的重要性質，常用於驗證 BST 正確性。"
+        },
+        {
+          "id": 12,
+          "type": "debugging",
+          "question": "以下 Bubble Sort 有 1 處效能 bug（多餘的迭代），請找出並修正（加入提前終止優化）：",
+          "buggyCode": "public static void BubbleSort(int[] arr)\n{\n    int n = arr.Length;\n    for (int i = 0; i < n; i++)  // 問題：外層應該是 n-1 次\n    {\n        for (int j = 0; j < n - 1; j++)  // 問題：內層應該是 n-1-i\n        {\n            if (arr[j] > arr[j + 1])\n            {\n                int temp = arr[j];\n                arr[j] = arr[j + 1];\n                arr[j + 1] = temp;\n            }\n        }\n        // 沒有提前終止：即使已完全排序仍繼續\n    }\n}",
+          "answer": "public static void BubbleSort(int[] arr)\n{\n    int n = arr.Length;\n    // [修正] 外層 n-1 次（最後一個元素不需比較）\n    for (int i = 0; i < n - 1; i++)\n    {\n        bool swapped = false;  // [優化] 提前終止旗標\n\n        // [修正] 每輪後，末尾 i 個元素已就位，不需再比\n        for (int j = 0; j < n - 1 - i; j++)\n        {\n            if (arr[j] > arr[j + 1])\n            {\n                (arr[j], arr[j + 1]) = (arr[j + 1], arr[j]);  // tuple swap\n                swapped = true;\n            }\n        }\n\n        // [優化] 若本輪沒有交換，陣列已排序完成\n        if (!swapped) break;\n    }\n}\n\n// 測試\nint[] arr = { 5, 3, 8, 1, 9, 2 };\nBubbleSort(arr);\nConsole.WriteLine(string.Join(\", \", arr));  // 1, 2, 3, 5, 8, 9",
+          "explanation": "兩個修正：(1) 外層 i < n-1（n 個元素只需 n-1 輪）；(2) 內層 j < n-1-i（每輪後最後 i 個元素已排定，不需再比）。優化：bool swapped 旗標，若一輪中無交換代表已排序完成，提前 break（最佳情況 O(n)）。元組交換 (a, b) = (b, a) 是 C# 的簡潔寫法。"
+        },
+        {
+          "id": 13,
+          "type": "debugging",
+          "question": "以下程式碼有 1 處錯誤（靜態成員 vs 實例成員混淆），請找出並修正：",
+          "buggyCode": "public class Counter\n{\n    // 問題：想追蹤每個實例的獨立計數，但用了 static\n    private static int _count = 0;\n\n    public void Increment() => _count++;\n    public void Decrement() => _count--;\n    public int GetCount() => _count;\n}\n\n// 測試\nCounter c1 = new Counter();\nCounter c2 = new Counter();\n\nc1.Increment(); c1.Increment();  // 期望 c1 = 2\nc2.Increment();                  // 期望 c2 = 1\n\nConsole.WriteLine(c1.GetCount());  // 期望 2，實際 3（共享！）\nConsole.WriteLine(c2.GetCount());  // 期望 1，實際 3（共享！）",
+          "answer": "public class Counter\n{\n    // [修正] 改為 instance 欄位（移除 static）\n    private int _count = 0;  // 每個實例有自己的 _count\n\n    public void Increment() => _count++;\n    public void Decrement() => _count--;\n    public int GetCount() => _count;\n\n    // 若真的需要靜態（全域計數），應明確命名：\n    // private static int _totalCount = 0;  // 所有實例共享\n    // public static int TotalCount => _totalCount;\n}\n\n// 測試\nCounter c1 = new Counter();\nCounter c2 = new Counter();\nc1.Increment(); c1.Increment();\nc2.Increment();\nConsole.WriteLine(c1.GetCount());  // 2（正確）\nConsole.WriteLine(c2.GetCount());  // 1（正確）",
+          "explanation": "static 欄位屬於類別（type），所有實例共享同一份。instance 欄位屬於物件，每個 new 出來的物件有自己的一份。此例誤用 static 導致 c1 和 c2 共用 _count，任何一個 Increment 都影響兩者。設計上需明確區分「全域狀態（static）」和「物件狀態（instance）」。"
+        },
+        {
+          "id": 14,
+          "type": "debugging",
+          "question": "以下 LINQ 程式碼有 1 處隱藏的效能 bug（在 Where 條件中呼叫昂貴操作），請找出並優化：",
+          "buggyCode": "public static List<string> GetMatchingFiles(List<string> filePaths, string keyword)\n{\n    // 問題：GetFileSize 是昂貴操作（IO），被 Where 多次呼叫\n    // 且 OrderByDescending 也呼叫一次 GetFileSize\n    // 同一個 path 的 GetFileSize 可能被呼叫 2+ 次\n    return filePaths\n        .Where(p => GetFileSize(p) > 1000 && p.Contains(keyword))\n        .OrderByDescending(p => GetFileSize(p))  // 又呼叫一次！\n        .ToList();\n}\n\nstatic long GetFileSize(string path)\n{\n    Console.WriteLine($\"[IO] 讀取檔案大小：{path}\");  // 模擬昂貴操作\n    return new Random().Next(500, 5000);  // 模擬\n}",
+          "answer": "public static List<string> GetMatchingFiles(List<string> filePaths, string keyword)\n{\n    // [修正] 先用 Select 投影成含 Size 的匿名型別，避免重複 IO\n    return filePaths\n        .Select(p => new { Path = p, Size = GetFileSize(p) })  // 每個檔案只讀一次\n        .Where(x => x.Size > 1000 && x.Path.Contains(keyword))\n        .OrderByDescending(x => x.Size)\n        .Select(x => x.Path)  // 最後只取路徑\n        .ToList();\n}\n\n// 更好的寫法：先過濾 Contains（便宜操作），再做 IO（昂貴操作）\npublic static List<string> GetMatchingFilesOptimized(List<string> filePaths, string keyword)\n{\n    return filePaths\n        .Where(p => p.Contains(keyword))  // 先過濾（便宜）\n        .Select(p => new { Path = p, Size = GetFileSize(p) })  // 再 IO（只對符合的）\n        .Where(x => x.Size > 1000)\n        .OrderByDescending(x => x.Size)\n        .Select(x => x.Path)\n        .ToList();\n}",
+          "explanation": "LINQ 效能優化原則：(1) 先做便宜的過濾（Contains）再做昂貴操作（IO/DB）；(2) 若需多次使用同一個計算結果，先用 Select 投影成匿名型別快取結果，避免重複計算；(3) Where 和 OrderBy 的條件表達式對每個元素都會執行，避免在裡面放昂貴操作。"
+        },
+        {
+          "id": 15,
+          "type": "debugging",
+          "question": "以下非同步程式碼有 1 處錯誤（Task 建立但立即 await，失去並行效果），請找出並修正：",
+          "buggyCode": "public static async Task<int> GetTotalAsync()\n{\n    // 問題：每個 await 讓下一個請求等前一個完成，退化為循序\n    int r1 = await FetchValueAsync(1);  // 等 500ms\n    int r2 = await FetchValueAsync(2);  // 再等 500ms\n    int r3 = await FetchValueAsync(3);  // 再等 500ms\n    // 共花 ~1500ms，不是 ~500ms\n    return r1 + r2 + r3;\n}\n\nstatic async Task<int> FetchValueAsync(int id)\n{\n    await Task.Delay(500);\n    return id * 10;\n}",
+          "answer": "public static async Task<int> GetTotalAsync()\n{\n    // [修正] 先建立所有 Task（不 await），讓它們同時開始執行\n    Task<int> t1 = FetchValueAsync(1);  // 立刻開始執行（非同步）\n    Task<int> t2 = FetchValueAsync(2);  // 立刻開始執行\n    Task<int> t3 = FetchValueAsync(3);  // 立刻開始執行\n\n    // 再用 WhenAll 等待全部完成（約 500ms，不是 1500ms）\n    int[] results = await Task.WhenAll(t1, t2, t3);\n    return results.Sum();  // 10 + 20 + 30 = 60\n\n    // 也可以這樣寫（更簡潔）：\n    // int[] r = await Task.WhenAll(\n    //     FetchValueAsync(1), FetchValueAsync(2), FetchValueAsync(3));\n    // return r.Sum();\n}",
+          "explanation": "await 表達式會「就地等待」，讓後續程式碼暫停直到該 Task 完成。若每一行都立即 await，就是循序執行。並行執行的關鍵：先呼叫方法取得 Task（不 await，Task 已在背景執行），收集所有 Task 後再統一用 WhenAll 等待。這是 async/await 最常見的效能誤用。"
+        },
+        {
+          "id": 16,
+          "type": "debugging",
+          "question": "以下程式碼有 2 處錯誤（屬性 vs 欄位命名衝突 + 遞迴溢位），請找出並修正：",
+          "buggyCode": "public class Person\n{\n    // 問題1：屬性名稱和欄位名稱相同（大小寫相同）\n    public string Name { get; set; }\n\n    // 問題2：屬性 getter 呼叫自己，無窮遞迴 → StackOverflowException\n    private string _email;\n    public string Email\n    {\n        get { return Email; }    // 問題2：應該是 _email，不是 Email\n        set { _email = value; }\n    }\n}",
+          "answer": "public class Person\n{\n    // [說明1] 自動屬性 { get; set; } 其實沒問題，編譯器自動生成 backing field\n    // 真正的問題出現在手寫 backing field 時：\n    private string _name = \"\";  // 欄位用 _camelCase\n    public string Name          // 屬性用 PascalCase\n    {\n        get { return _name; }\n        set { _name = value ?? \"\"; }\n    }\n\n    // [修正2] getter 應回傳 backing field _email，不是屬性 Email 本身\n    private string _email = \"\";\n    public string Email\n    {\n        get { return _email; }   // 正確：回傳 _email（欄位）\n        set { _email = value ?? \"\"; }\n    }\n}",
+          "explanation": "Bug 2 是最危險的：get { return Email; } 在 getter 中呼叫屬性本身（Email），屬性 getter 又呼叫 getter，無窮遞迴直到 StackOverflowException 崩潰。正確：getter 應回傳 backing field（_email）。C# 命名慣例：私有欄位 _camelCase，公開屬性 PascalCase，讓兩者容易區分。"
+        },
+        {
+          "id": 17,
+          "type": "debugging",
+          "question": "以下程式碼有 1 處錯誤（事件重複訂閱導致方法多次執行），請找出問題並修正：",
+          "buggyCode": "public class Form\n{\n    private Button _button = new Button();\n\n    // 每次 Show() 被呼叫都會重新訂閱事件，但 -= 沒有移除舊的\n    public void Show()\n    {\n        _button.Clicked += OnButtonClicked;\n        Console.WriteLine(\"表單顯示\");\n    }\n\n    private void OnButtonClicked()\n    {\n        Console.WriteLine(\"按鈕被點擊\");\n    }\n}\n\npublic class Button { public event Action? Clicked; public void Click() => Clicked?.Invoke(); }\n\n// 問題：Show() 呼叫 3 次後，點擊一次按鈕 → OnButtonClicked 執行 3 次\nForm form = new Form();\nform.Show(); form.Show(); form.Show();\n// 內部 _button.Click() 觸發...",
+          "answer": "public class Form\n{\n    private Button _button = new Button();\n\n    // [修正] 先 -= 確保只訂閱一次\n    public void Show()\n    {\n        _button.Clicked -= OnButtonClicked;  // 先移除（若未訂閱也無害）\n        _button.Clicked += OnButtonClicked;  // 再訂閱\n        Console.WriteLine(\"表單顯示\");\n    }\n\n    public void Hide()\n    {\n        _button.Clicked -= OnButtonClicked;  // 隱藏時取消訂閱\n    }\n\n    private void OnButtonClicked()\n    {\n        Console.WriteLine(\"按鈕被點擊\");  // 只執行一次\n    }\n}\n\npublic class Button { public event Action? Clicked; public void Click() => Clicked?.Invoke(); }",
+          "explanation": "事件重複訂閱：同一個方法 += 多次，則事件觸發時該方法被呼叫多次（等於多播委派中有重複項）。標準防護模式：先 -= 再 +=（對未訂閱的方法執行 -= 不拋例外）。良好實踐：在物件不再需要時（Hide、Dispose）執行 -= 取消訂閱，避免記憶體洩漏（訂閱者被事件持有參考，無法被 GC）。"
+        },
+        {
+          "id": 18,
+          "type": "debugging",
+          "question": "以下程式碼有 2 處錯誤（string.Format 格式索引超出範圍 + StringBuilder 誤用），請找出並修正：",
+          "buggyCode": "public static string BuildReport(List<string> items)\n{\n    // 問題1：string.Format 索引 {2} 超出提供的引數數量（只有 0,1）\n    string header = string.Format(\"報表日期：{0}，共 {1} 項，類別：{2}\",\n        DateTime.Now.ToShortDateString(), items.Count);\n\n    // 問題2：在迴圈中用 string += 效能差（每次產生新 string 物件）\n    string body = \"\";\n    for (int i = 0; i < items.Count; i++)\n    {\n        body += $\"{i + 1}. {items[i]}\\n\";  // 每次產生新字串\n    }\n\n    return header + \"\\n\" + body;\n}",
+          "answer": "public static string BuildReport(List<string> items)\n{\n    // [修正1] 提供第三個引數，或移除 {2}\n    string header = string.Format(\"報表日期：{0}，共 {1} 項\",\n        DateTime.Now.ToShortDateString(), items.Count);\n    // 或：string header = $\"報表日期：{DateTime.Now.ToShortDateString()}，共 {items.Count} 項\";\n\n    // [修正2] 迴圈中大量字串拼接用 StringBuilder\n    var sb = new StringBuilder();\n    for (int i = 0; i < items.Count; i++)\n    {\n        sb.AppendLine($\"{i + 1}. {items[i]}\");  // 不產生中間字串物件\n    }\n\n    return header + \"\\n\" + sb.ToString();\n}",
+          "explanation": "Bug 1：string.Format 的 {0},{1},{2} 是佔位符索引，必須對應後面引數的數量，多餘的佔位符導致 FormatException。Bug 2：string += 在迴圈中效能差（O(n²)），因為字串不可變，每次 += 都建立新的字串物件。大量字串拼接用 StringBuilder（O(n)），它是可變的字串緩衝區，AppendLine 不建立新物件。"
+        },
+        {
+          "id": 19,
+          "type": "debugging",
+          "question": "以下程式碼有 1 處設計錯誤（抽象方法在衍生類別沒有完全實作），請找出並修正：",
+          "buggyCode": "public abstract class DataExporter\n{\n    public abstract void Export(List<string> data);\n    public abstract string GetFormat();\n\n    public void Run(List<string> data)\n    {\n        Console.WriteLine($\"使用 {GetFormat()} 格式匯出...\");\n        Export(data);\n    }\n}\n\n// 問題：CsvExporter 只實作了 Export，忘記實作 GetFormat()\npublic class CsvExporter : DataExporter\n{\n    public override void Export(List<string> data)\n    {\n        Console.WriteLine(string.Join(\",\", data));\n    }\n    // 缺少 GetFormat() 的 override → 編譯錯誤\n}",
+          "answer": "public abstract class DataExporter\n{\n    public abstract void Export(List<string> data);\n    public abstract string GetFormat();\n\n    public void Run(List<string> data)\n    {\n        Console.WriteLine($\"使用 {GetFormat()} 格式匯出...\");\n        Export(data);\n    }\n}\n\npublic class CsvExporter : DataExporter\n{\n    public override void Export(List<string> data)\n    {\n        Console.WriteLine(string.Join(\",\", data));\n    }\n\n    // [修正] 補上缺少的 abstract 方法實作\n    public override string GetFormat() => \"CSV\";\n}\n\npublic class JsonExporter : DataExporter\n{\n    public override void Export(List<string> data)\n        => Console.WriteLine($\"[{string.Join(\",\", data.Select(d => $\"\\\"{d}\\\"\"))}]\");\n\n    public override string GetFormat() => \"JSON\";\n}",
+          "explanation": "CS0534 編譯錯誤：具體類別（非 abstract）繼承抽象類別時，必須實作**所有** abstract 成員。若只想部分實作，可繼續宣告為 abstract class（讓更下層的子類實作）。這是面試和考試中常考的抽象類別規則。"
+        },
+        {
+          "id": 20,
+          "type": "debugging",
+          "question": "以下程式碼有 1 處錯誤（LINQ GroupBy 後直接使用 Key 比較，忽略大小寫），請找出並修正：",
+          "buggyCode": "var students = new[]\n{\n    new { Name=\"Alice\", dept=\"CS\" },\n    new { Name=\"Bob\",   dept=\"cs\" },   // 小寫\n    new { Name=\"Carol\", dept=\"CS\" },\n    new { Name=\"Dave\",  dept=\"Cs\" }    // 混合大小寫\n};\n\n// 問題：GroupBy 預設大小寫敏感，\"CS\"/\"cs\"/\"Cs\" 被視為不同組\nvar groups = students.GroupBy(s => s.dept);\nforeach (var g in groups)\n    Console.WriteLine($\"{g.Key}: {g.Count()} 人\");",
+          "answer": "var students = new[]\n{\n    new { Name=\"Alice\", dept=\"CS\" },\n    new { Name=\"Bob\",   dept=\"cs\" },\n    new { Name=\"Carol\", dept=\"CS\" },\n    new { Name=\"Dave\",  dept=\"Cs\" }\n};\n\n// [修正] GroupBy 時先統一大小寫，或傳入自訂比較器\n\n// 方式一：先轉換 key 的大小寫\nvar groups = students\n    .GroupBy(s => s.dept.ToUpperInvariant());  // 全轉大寫再分組\n\nforeach (var g in groups)\n    Console.WriteLine($\"{g.Key}: {g.Count()} 人\");\n// CS: 4 人（全合併）\n\n// 方式二：傳入 StringComparer\nvar groups2 = students\n    .GroupBy(s => s.dept, StringComparer.OrdinalIgnoreCase);\n\nforeach (var g in groups2)\n    Console.WriteLine($\"{g.Key}: {g.Count()} 人\");",
+          "explanation": "GroupBy 和 Distinct、ToDictionary 等預設使用「等值比較器（EqualityComparer）」，對字串是大小寫敏感的。修正方式：(1) 在 keySelector 中統一大小寫（ToUpperInvariant/ToLowerInvariant）；(2) 傳入 StringComparer.OrdinalIgnoreCase 作為第二參數。ToUpperInvariant 比 ToUpper 更安全（不受 locale 影響）。"
+        },
+        {
+          "id": 21,
+          "type": "debugging",
+          "question": "以下程式碼有 2 處錯誤（泛型方法缺少型別約束 + 屬性存取錯誤），請找出並修正：",
+          "buggyCode": "public class Repository<T>\n{\n    private List<T> _items = new();\n\n    public void Add(T item)\n    {\n        // 問題1：T 沒有約束，不能用 null 檢查（值型別沒有 null）\n        if (item == null) throw new ArgumentNullException(nameof(item));\n        _items.Add(item);\n    }\n\n    public T? FindById(int id)\n    {\n        // 問題2：T 沒有 Id 屬性，無法編譯\n        return _items.FirstOrDefault(item => item.Id == id);\n    }\n}",
+          "answer": "// 定義要求 T 實作的介面\npublic interface IEntity\n{\n    int Id { get; }\n}\n\n// [修正1] 加上 where T : class, IEntity 約束\n// class 約束讓 null 檢查合法；IEntity 讓 .Id 屬性合法\npublic class Repository<T> where T : class, IEntity\n{\n    private List<T> _items = new();\n\n    public void Add(T item)\n    {\n        // 有 class 約束後，null 比較合法\n        if (item == null) throw new ArgumentNullException(nameof(item));\n        _items.Add(item);\n    }\n\n    // [修正2] 有 IEntity 約束後，.Id 屬性可用\n    public T? FindById(int id)\n    {\n        return _items.FirstOrDefault(item => item.Id == id);\n    }\n}\n\n// 測試\npublic class Product : IEntity\n{\n    public int Id { get; set; }\n    public string Name { get; set; } = \"\";\n}\n\nvar repo = new Repository<Product>();\nrepo.Add(new Product { Id = 1, Name = \"筆電\" });\nvar p = repo.FindById(1);\nConsole.WriteLine(p?.Name);  // 筆電",
+          "explanation": "兩個問題都源自缺乏型別約束：(1) 沒有 class 約束時，T 可能是值型別（int、struct），值型別不能與 null 比較（CS0403 錯誤）；(2) 沒有介面約束時，編譯器不知道 T 有 Id 屬性（CS1061 錯誤）。解法：(1) where T : class 確保參考型別；(2) where T : IEntity 確保 T 有 Id 屬性。"
+        }
+      ]
+    }
+  ]
+}
