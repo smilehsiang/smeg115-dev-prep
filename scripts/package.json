@@ -1,0 +1,20 @@
+{
+  "name": "smeg115-content-generator",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Generate exam prep content using Claude API",
+  "scripts": {
+    "generate": "node generate-content.js",
+    "generate:ch01": "node generate-content.js --chapter=ch01",
+    "generate:ch02": "node generate-content.js --chapter=ch02",
+    "generate:ch03": "node generate-content.js --chapter=ch03",
+    "generate:ch04": "node generate-content.js --chapter=ch04",
+    "generate:ch05": "node generate-content.js --chapter=ch05",
+    "generate:ch06": "node generate-content.js --chapter=ch06",
+    "reset": "rm -f .progress.json",
+    "serve": "npx serve ../docs"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.54.0"
+  }
+}

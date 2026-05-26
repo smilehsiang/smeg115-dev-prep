@@ -1,0 +1,120 @@
+{
+  "examDate": "2026-06-13",
+  "examTitle": "財團法人中小企業信用保證基金 115年儲備職員甄選",
+  "examSubtitle": "資訊人員－程式設計 (B41105102)",
+  "examLocation": "台北（雙北）",
+  "examTime": "14:00–15:30（預備 13:50）",
+  "schedule": [
+    { "date": "2026-05-26", "end": "2026-05-28", "topic": "C# OOP 四大柱 + 介面/抽象類別 + 泛型", "chapter": "ch01" },
+    { "date": "2026-05-29", "end": "2026-05-31", "topic": "C# 委派/事件 + LINQ + async/await", "chapter": "ch01" },
+    { "date": "2026-06-01", "end": "2026-06-01", "topic": "C# Exception Handling + 除錯題", "chapter": "ch01" },
+    { "date": "2026-06-02", "end": "2026-06-04", "topic": "SQL CTE + 視窗函數 + JOIN + 子查詢", "chapter": "ch02" },
+    { "date": "2026-06-05", "end": "2026-06-06", "topic": "SQL SP/View/Trigger + Transaction + Index + 正規化", "chapter": "ch02" },
+    { "date": "2026-06-07", "end": "2026-06-07", "topic": "ASP.NET Web Forms 完整複習", "chapter": "ch03" },
+    { "date": "2026-06-08", "end": "2026-06-08", "topic": "資料結構 + UML/設計模式", "chapter": "ch04" },
+    { "date": "2026-06-09", "end": "2026-06-11", "topic": "模擬考 + 弱點加強（所有章節）", "chapter": "all" },
+    { "date": "2026-06-12", "end": "2026-06-12", "topic": "輕度複習，休息備考", "chapter": "all" }
+  ],
+  "chapters": [
+    {
+      "id": "ch01",
+      "title": "C# 程式設計",
+      "priority": 1,
+      "priorityLabel": "第一優先",
+      "examWeight": "非選擇題 80%，全程手寫 C#",
+      "color": "#e74c3c",
+      "totalExercises": 110,
+      "sections": [
+        { "id": "oop-pillars", "title": "OOP 四大柱：封裝、繼承、多型、抽象", "exerciseCount": 15 },
+        { "id": "interface-abstract", "title": "介面 vs 抽象類別", "exerciseCount": 12 },
+        { "id": "generics", "title": "泛型 (Generics)", "exerciseCount": 10 },
+        { "id": "delegate-event", "title": "委派與事件 (Delegate/Event)", "exerciseCount": 12 },
+        { "id": "linq", "title": "LINQ 查詢語法", "exerciseCount": 18 },
+        { "id": "async-await", "title": "非同步程式設計 (async/await)", "exerciseCount": 12 },
+        { "id": "exception-handling", "title": "例外處理 (Exception Handling)", "exerciseCount": 10 },
+        { "id": "debugging", "title": "除錯題專區", "exerciseCount": 21 }
+      ]
+    },
+    {
+      "id": "ch02",
+      "title": "MS SQL Server",
+      "priority": 2,
+      "priorityLabel": "第二優先",
+      "examWeight": "手寫 SQL，含設計題",
+      "color": "#3498db",
+      "totalExercises": 80,
+      "sections": [
+        { "id": "cte", "title": "通用資料表運算式 (CTE)", "exerciseCount": 10 },
+        { "id": "window-functions", "title": "視窗函數 (Window Functions)", "exerciseCount": 10 },
+        { "id": "joins", "title": "JOIN 全類型", "exerciseCount": 10 },
+        { "id": "subquery", "title": "子查詢與 EXISTS", "exerciseCount": 10 },
+        { "id": "db-objects", "title": "Stored Procedure / View / Trigger / Function", "exerciseCount": 10 },
+        { "id": "transaction", "title": "交易與 ACID", "exerciseCount": 10 },
+        { "id": "index", "title": "索引設計 (Index)", "exerciseCount": 10 },
+        { "id": "normalization", "title": "資料庫正規化", "exerciseCount": 10 }
+      ]
+    },
+    {
+      "id": "ch03",
+      "title": "ASP.NET Web Forms",
+      "priority": 3,
+      "priorityLabel": "第三優先",
+      "examWeight": "生命週期、PostBack、ViewState",
+      "color": "#9b59b6",
+      "totalExercises": 40,
+      "sections": [
+        { "id": "page-lifecycle", "title": "Page 生命週期", "exerciseCount": 7 },
+        { "id": "postback", "title": "PostBack 機制", "exerciseCount": 7 },
+        { "id": "viewstate", "title": "ViewState", "exerciseCount": 7 },
+        { "id": "session-state", "title": "Session / Application / Cookie", "exerciseCount": 7 },
+        { "id": "code-behind", "title": "Code-Behind 架構", "exerciseCount": 6 },
+        { "id": "controls-config", "title": "Server Controls 與 Web.config", "exerciseCount": 6 }
+      ]
+    },
+    {
+      "id": "ch04",
+      "title": "資料結構與演算法",
+      "priority": 4,
+      "priorityLabel": "第四優先",
+      "examWeight": "手寫程式碼 + 複雜度分析",
+      "color": "#27ae60",
+      "totalExercises": 30,
+      "sections": [
+        { "id": "linked-list", "title": "Linked List", "exerciseCount": 6 },
+        { "id": "stack-queue", "title": "Stack 與 Queue", "exerciseCount": 6 },
+        { "id": "bst", "title": "Binary Search Tree (BST)", "exerciseCount": 6 },
+        { "id": "sorting", "title": "排序演算法", "exerciseCount": 6 },
+        { "id": "complexity", "title": "時間複雜度分析", "exerciseCount": 6 }
+      ]
+    },
+    {
+      "id": "ch05",
+      "title": "系統分析與 UML",
+      "priority": 5,
+      "priorityLabel": "第五優先",
+      "examWeight": "手畫圖表 + 設計模式說明",
+      "color": "#f39c12",
+      "totalExercises": 15,
+      "sections": [
+        { "id": "use-case", "title": "Use Case Diagram", "exerciseCount": 4 },
+        { "id": "class-diagram", "title": "Class Diagram", "exerciseCount": 4 },
+        { "id": "sequence-diagram", "title": "Sequence Diagram", "exerciseCount": 3 },
+        { "id": "design-patterns", "title": "設計模式", "exerciseCount": 4 }
+      ]
+    },
+    {
+      "id": "ch06",
+      "title": "HTML / JS / CSS",
+      "priority": 6,
+      "priorityLabel": "第六優先",
+      "examWeight": "口試可能問，快速複習即可",
+      "color": "#1abc9c",
+      "totalExercises": 10,
+      "sections": [
+        { "id": "html5", "title": "HTML5 語意標籤", "exerciseCount": 3 },
+        { "id": "css", "title": "CSS Box Model 與 Flexbox", "exerciseCount": 4 },
+        { "id": "javascript", "title": "JavaScript DOM 操作與 AJAX", "exerciseCount": 3 }
+      ]
+    }
+  ]
+}

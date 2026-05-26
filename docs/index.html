@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>smeg115 考試複習 | 中小企業信保基金</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body data-page="home">
+
+<div class="layout">
+  <!-- Sidebar -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <h2>smeg115 考試複習</h2>
+      <div class="exam-date">📅 考試：2026/06/13（週六）14:00</div>
+    </div>
+    <div class="sidebar-nav" id="sidebar-nav">
+      <div class="loading" style="min-height:100px">
+        <div class="spinner"></div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="topbar">
+      <button class="menu-btn" onclick="toggleMenu()">☰</button>
+      <span style="font-weight:700;font-size:0.95rem">smeg115 考試複習網站</span>
+      <div class="countdown" id="countdown">計算中…</div>
+    </div>
+
+    <div class="home-content">
+      <!-- Hero -->
+      <div class="hero">
+        <h1>財團法人中小企業信用保證基金<br>115年儲備職員甄選 — 資訊人員程式設計</h1>
+        <p>筆試 90 分鐘｜選擇題 20% + 非選擇題 80%（手寫 C#）｜6 大主題共 285 道練習題</p>
+        <div class="exam-info">
+          <div class="exam-info-item">
+            <span class="label">距離考試</span>
+            <div id="days-remaining"><span class="countdown-big">…</span></div>
+          </div>
+          <div class="exam-info-item">
+            <span class="label">考試日期</span>
+            <span class="value">2026/06/13（週六）</span>
+          </div>
+          <div class="exam-info-item">
+            <span class="label">考試時間</span>
+            <span class="value">14:00–15:30</span>
+          </div>
+          <div class="exam-info-item">
+            <span class="label">地點</span>
+            <span class="value">台北（雙北）</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Chapters -->
+      <p class="section-title">學習章節（依優先順序排列）</p>
+      <div class="chapters-grid" id="chapters-grid">
+        <div class="loading"><div class="spinner"></div></div>
+      </div>
+
+      <!-- Schedule -->
+      <p class="section-title">兩週衝刺時程</p>
+      <div class="schedule-card">
+        <table>
+          <thead>
+            <tr>
+              <th style="width:120px">日期</th>
+              <th>今日主題</th>
+            </tr>
+          </thead>
+          <tbody id="schedule-tbody">
+            <tr><td colspan="2"><div class="loading" style="min-height:60px"><div class="spinner"></div></div></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Tips -->
+      <p class="section-title">考試重點提醒</p>
+      <div style="background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:20px 24px;box-shadow:0 1px 3px rgba(0,0,0,0.06)">
+        <ul style="list-style:none;display:flex;flex-direction:column;gap:10px;font-size:0.9rem">
+          <li>⚠️ <strong>手寫 C#</strong>：非選擇題全程不可查文件，熟練度是關鍵</li>
+          <li>🐛 <strong>除錯題</strong>：給定有 bug 的程式碼，找出並手寫修正版本</li>
+          <li>💡 <strong>重點語法</strong>：abstract/virtual/override、interface、delegate、async/await、LINQ、CTE、ROW_NUMBER OVER PARTITION BY</li>
+          <li>📝 <strong>SQL 設計題</strong>：可能要求設計資料表結構（正規化）或寫出 Stored Procedure</li>
+          <li>🎨 <strong>UML</strong>：可能要求手畫 Class Diagram 或說明設計模式（Singleton、Repository）</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+<script src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>章節複習 | smeg115</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body data-page="chapter">
+
+<div class="layout">
+  <!-- Sidebar -->
+  <nav class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <h2>smeg115 考試複習</h2>
+      <div class="exam-date">📅 考試：2026/06/13（週六）14:00</div>
+    </div>
+    <div class="sidebar-nav" id="sidebar-nav">
+      <div class="loading" style="min-height:100px"><div class="spinner"></div></div>
+    </div>
+  </nav>
+
+  <!-- Main -->
+  <div class="main">
+    <div class="topbar">
+      <button class="menu-btn" onclick="toggleMenu()">☰</button>
+      <span class="breadcrumb" id="breadcrumb">首頁 / <span>…</span></span>
+      <div class="countdown" id="countdown-topbar">
+        距離考試：<span id="countdown-topbar-inner"></span>
+      </div>
+    </div>
+
+    <div class="chapter-layout">
+      <!-- TOC (in-page) -->
+      <div class="chapter-toc">
+        <div class="toc-title">本章節目錄</div>
+        <div id="chapter-toc-list">
+          <div class="loading" style="min-height:80px"><div class="spinner"></div></div>
+        </div>
+      </div>
+
+      <!-- Chapter body -->
+      <div class="chapter-body">
+        <div id="chapter-header"></div>
+        <div id="chapter-content">
+          <div class="loading"><div class="spinner"></div><p>載入中…</p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Prism syntax highlighting -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+<script src="js/app.js"></script>
+
+<script>
+// Fix countdown display for topbar
+document.addEventListener('DOMContentLoaded', () => {
+  const inner = document.getElementById('countdown-topbar-inner');
+  if (inner) {
+    const topbar = document.getElementById('countdown-topbar');
+    // Reuse the update logic from app.js
+    function update() {
+      const now = new Date();
+      const diff = new Date('2026-06-13T14:00:00+08:00') - now;
+      if (diff <= 0) { topbar.textContent = '考試已結束'; return; }
+      const days = Math.floor(diff / 86400000);
+      const hours = Math.floor((diff % 86400000) / 3600000);
+      topbar.innerHTML = `距離考試：<strong style="color:#ef4444">${days}</strong> 天 ${hours} 時`;
+    }
+    update();
+    setInterval(update, 60000);
+  }
+});
+</script>
+</body>
+</html>
