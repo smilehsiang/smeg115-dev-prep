@@ -1,0 +1,162 @@
+{
+  "chapter": 6,
+  "id": "ch06",
+  "title": "HTML / CSS / JavaScript",
+  "priority": "第六優先",
+  "examWeight": "選擇題 70%、程式碼題 30%",
+  "color": "#16a085",
+  "sections": [
+    {
+      "id": "html",
+      "title": "HTML 基礎與語意標籤",
+      "content": "## HTML 文件結構\n\n```html\n<!DOCTYPE html>\n<html lang=\"zh-TW\">\n<head>\n  <meta charset=\"UTF-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n  <title>頁面標題</title>\n  <link rel=\"stylesheet\" href=\"style.css\">\n</head>\n<body>\n  <!-- 頁面內容 -->\n  <script src=\"app.js\"></script>\n</body>\n</html>\n```\n\n## 常用語意標籤（HTML5）\n\n| 標籤 | 用途 |\n|------|------|\n| `<header>` | 頁首（Logo、導覽列）|\n| `<nav>` | 導覽連結區 |\n| `<main>` | 主要內容（每頁只有一個）|\n| `<article>` | 獨立的內容區塊（文章、貼文）|\n| `<section>` | 主題性區塊 |\n| `<aside>` | 側欄、補充資訊 |\n| `<footer>` | 頁尾 |\n| `<figure>/<figcaption>` | 圖片與說明文字 |\n\n## 表單元素\n\n```html\n<form action=\"/submit\" method=\"POST\">\n  <label for=\"name\">姓名：</label>\n  <input type=\"text\"  id=\"name\"  name=\"name\" required>\n\n  <input type=\"email\" id=\"email\" name=\"email\">\n  <input type=\"password\" id=\"pwd\" name=\"pwd\">\n  <input type=\"number\" min=\"0\" max=\"100\">\n  <input type=\"checkbox\" name=\"agree\" value=\"yes\">\n  <input type=\"radio\" name=\"gender\" value=\"M\">\n\n  <select name=\"city\">\n    <option value=\"tp\">台北</option>\n    <option value=\"tc\">台中</option>\n  </select>\n\n  <textarea name=\"comment\" rows=\"4\"></textarea>\n  <button type=\"submit\">送出</button>\n</form>\n```\n\n## 行內 vs 區塊元素\n\n| 行內（Inline）| 區塊（Block）|\n|-------------|-------------|\n| `<span>`、`<a>`、`<strong>`、`<img>` | `<div>`、`<p>`、`<h1>`~`<h6>`、`<ul>`、`<table>` |\n| 不換行，寬高由內容決定 | 佔滿整列，可設 width/height |\n\n## 超連結與圖片\n\n```html\n<a href=\"https://example.com\" target=\"_blank\" rel=\"noopener\">外部連結</a>\n<a href=\"mailto:test@test.com\">寄信</a>\n<a href=\"#section1\">頁內錨點</a>\n\n<img src=\"photo.jpg\" alt=\"替代文字\" width=\"300\" height=\"200\">\n```",
+      "codeExample": "<!-- 完整語意化頁面骨架 -->\n<!DOCTYPE html>\n<html lang=\"zh-TW\">\n<head>\n  <meta charset=\"UTF-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n  <title>部落格文章</title>\n</head>\n<body>\n  <header>\n    <nav>\n      <a href=\"/\">首頁</a>\n      <a href=\"/about\">關於</a>\n    </nav>\n  </header>\n\n  <main>\n    <article>\n      <header>\n        <h1>文章標題</h1>\n        <time datetime=\"2026-06-01\">2026/06/01</time>\n      </header>\n      <section>\n        <h2>第一節</h2>\n        <p>內容文字...</p>\n        <figure>\n          <img src=\"img.jpg\" alt=\"說明圖\">\n          <figcaption>圖片說明</figcaption>\n        </figure>\n      </section>\n    </article>\n    <aside>\n      <h3>相關文章</h3>\n    </aside>\n  </main>\n\n  <footer>\n    <p>&copy; 2026 版權所有</p>\n  </footer>\n</body>\n</html>",
+      "keyPoints": [
+        "<!DOCTYPE html> 宣告 HTML5，必須在文件第一行",
+        "語意標籤：header/nav/main/article/section/aside/footer（SEO 友善）",
+        "<meta charset=\"UTF-8\"> 和 viewport 是行動裝置必備",
+        "img 必須有 alt 屬性（無障礙需求、SEO）",
+        "表單 method=\"GET\" 參數在 URL；method=\"POST\" 在 Request Body"
+      ],
+      "exercises": [
+        {
+          "id": 1,
+          "type": "coding",
+          "question": "請用語意化 HTML5 標籤，寫出一個包含 header（含 nav）、main（含一個 article 和一個 aside）、footer 的頁面骨架。nav 中有兩個連結：首頁和聯絡我們。",
+          "answer": "<!DOCTYPE html>\n<html lang=\"zh-TW\">\n<head>\n  <meta charset=\"UTF-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n  <title>我的網站</title>\n</head>\n<body>\n  <header>\n    <nav>\n      <a href=\"/\">首頁</a>\n      <a href=\"/contact\">聯絡我們</a>\n    </nav>\n  </header>\n\n  <main>\n    <article>\n      <h1>文章標題</h1>\n      <p>文章內容...</p>\n    </article>\n\n    <aside>\n      <h2>側欄資訊</h2>\n      <p>補充內容...</p>\n    </aside>\n  </main>\n\n  <footer>\n    <p>&copy; 2026 版權所有</p>\n  </footer>\n</body>\n</html>",
+          "explanation": "HTML5 語意標籤讓結構更清晰：header 包含網站標題/導覽；main 包含主要內容（每頁只有一個 main）；article 是獨立可重用的內容塊；aside 是補充性側欄；footer 是頁尾。語意標籤有助 SEO 和無障礙設計。"
+        },
+        {
+          "id": 2,
+          "type": "multiple-choice",
+          "question": "以下哪個 HTML 標籤屬於「區塊元素（Block Element）」？",
+          "options": [
+            "A. <span>",
+            "B. <a>",
+            "C. <strong>",
+            "D. <div>"
+          ],
+          "answer": "D",
+          "explanation": "<div> 是典型區塊元素，預設佔滿整列，可設定 width/height。<span>、<a>、<strong> 都是行內元素（Inline），不換行，寬高由內容決定。區塊 vs 行內的差異在 CSS 佈局中非常重要。"
+        },
+        {
+          "id": 3,
+          "type": "multiple-choice",
+          "question": "HTML 表單中，<input type=\"submit\"> 和 <button type=\"submit\"> 的主要差異是？",
+          "options": [
+            "A. <input type=\"submit\"> 可以包含 HTML 內容，<button> 只能顯示文字",
+            "B. <button type=\"submit\"> 可以包含 HTML 內容（如 <img>），<input> 只能顯示文字",
+            "C. 兩者完全相同，可以互換",
+            "D. <button> 預設 type 是 \"button\"，不會提交表單"
+          ],
+          "answer": "B",
+          "explanation": "<button> 是容器標籤，可在按鈕內放 HTML（如圖示 <img>、<span>）；<input type=\"submit\"> 是空白元素，只能用 value 屬性設定文字。注意：D 說法錯誤，<button> 在表單內預設 type=\"submit\"（不是 button），這是常見陷阱。"
+        }
+      ]
+    },
+    {
+      "id": "css",
+      "title": "CSS 選擇器、Box Model 與 Flexbox",
+      "content": "## CSS 選擇器優先度（Specificity）\n\n優先度由高到低：\n```\n!important > 行內樣式 > ID(#) > 類別(.)/屬性/偽類 > 元素/偽元素\n```\n\n| 選擇器 | 優先度分數 | 範例 |\n|--------|-----------|------|\n| 行內樣式 | 1000 | `style=\"color:red\"` |\n| ID | 100 | `#header` |\n| Class/屬性/偽類 | 10 | `.nav`, `[type]`, `:hover` |\n| 元素/偽元素 | 1 | `div`, `::before` |\n\n## Box Model（盒子模型）\n\n```\n┌──────────────────────────────┐\n│           margin             │\n│  ┌────────────────────────┐  │\n│  │        border          │  │\n│  │  ┌──────────────────┐  │  │\n│  │  │     padding      │  │  │\n│  │  │  ┌────────────┐  │  │  │\n│  │  │  │  content   │  │  │  │\n│  │  │  └────────────┘  │  │  │\n│  │  └──────────────────┘  │  │\n│  └────────────────────────┘  │\n└──────────────────────────────┘\n```\n\n```css\n/* box-sizing: content-box（預設）：width = content 寬度 */\n/* box-sizing: border-box（推薦）：width = content + padding + border */\n* { box-sizing: border-box; }\n```\n\n## 常用選擇器\n\n```css\ndiv          { }  /* 元素選擇器 */\n.className   { }  /* 類別選擇器 */\n#idName      { }  /* ID 選擇器 */\ndiv.active   { }  /* 多重（div 且有 active class）*/\ndiv > p      { }  /* 直接子元素 */\ndiv p        { }  /* 所有後代 */\ndiv + p      { }  /* 緊接的下一個兄弟 */\na:hover      { }  /* 偽類 */\np::first-line{ }  /* 偽元素 */\n[type=\"text\"]{ }  /* 屬性選擇器 */\n```\n\n## Flexbox\n\n```css\n.container {\n  display: flex;\n  flex-direction: row;           /* row | column */\n  justify-content: space-between;/* 主軸對齊 */\n  align-items: center;           /* 交叉軸對齊 */\n  flex-wrap: wrap;               /* 換行 */\n  gap: 16px;                     /* 間距 */\n}\n\n.item {\n  flex: 1;          /* flex-grow:1 flex-shrink:1 flex-basis:0 */\n  flex: 0 0 200px;  /* 固定寬度 200px 不縮放 */\n}\n```\n\n## 常用屬性速查\n\n```css\n/* 定位 */\nposition: relative | absolute | fixed | sticky;\ntop / right / bottom / left: 值;\nz-index: 10;\n\n/* 顯示 */\ndisplay: block | inline | inline-block | flex | grid | none;\nvisibility: hidden;  /* 隱藏但佔空間（≠ display:none）*/\n\n/* 文字 */\nfont-size: 16px;  font-weight: bold;\ntext-align: center | left | right | justify;\nline-height: 1.5;\n```",
+      "codeExample": "/* Flexbox 水平置中卡片佈局 */\n.card-container {\n  display: flex;\n  flex-wrap: wrap;\n  gap: 20px;\n  justify-content: center;\n  padding: 20px;\n}\n\n.card {\n  flex: 0 0 calc(33.333% - 20px); /* 三欄佈局 */\n  background: #fff;\n  border: 1px solid #e0e0e0;\n  border-radius: 8px;\n  padding: 16px;\n  box-shadow: 0 2px 4px rgba(0,0,0,0.1);\n  box-sizing: border-box;\n}\n\n/* 響應式：小螢幕改為單欄 */\n@media (max-width: 768px) {\n  .card { flex: 0 0 100%; }\n}\n\n/* CSS 變數（Custom Properties）*/\n:root {\n  --primary: #3498db;\n  --radius: 8px;\n}\n.btn {\n  background: var(--primary);\n  border-radius: var(--radius);\n}",
+      "keyPoints": [
+        "CSS 優先度：!important > 行內 > ID(100) > class(10) > 元素(1)",
+        "box-sizing: border-box 讓 width 包含 padding 和 border，佈局更直覺",
+        "Flexbox：justify-content 控制主軸，align-items 控制交叉軸",
+        "display:none 不佔空間；visibility:hidden 隱藏但仍佔空間",
+        "position:absolute 相對於最近的 position:relative 父元素定位"
+      ],
+      "exercises": [
+        {
+          "id": 1,
+          "type": "coding",
+          "question": "請寫 CSS 讓 .container 內的三個 .item 水平排列且等寬，之間有 16px 間距，並在螢幕寬度小於 600px 時改為垂直排列（使用 Flexbox 和 Media Query）。",
+          "answer": "/* 基本 Flexbox 佈局 */\n.container {\n  display: flex;\n  flex-direction: row;\n  gap: 16px;              /* 項目間距 */\n}\n\n.item {\n  flex: 1;                /* 等分剩餘空間 */\n  padding: 16px;\n  background: #f0f0f0;\n  box-sizing: border-box;\n}\n\n/* Media Query：小螢幕改為垂直排列 */\n@media (max-width: 600px) {\n  .container {\n    flex-direction: column;\n  }\n}",
+          "explanation": "flex: 1 讓每個 .item 等分容器剩餘空間（等同 flex: 1 1 0）。gap 取代舊的 margin 方式，更簡潔。@media (max-width: 600px) 是響應式設計的核心，改變 flex-direction 實現斷點切換。"
+        },
+        {
+          "id": 2,
+          "type": "multiple-choice",
+          "question": "以下 CSS 宣告中，哪個選擇器的優先度最高？",
+          "options": [
+            "A. p { color: red; }",
+            "B. .text { color: blue; }",
+            "C. #main { color: green; }",
+            "D. div p { color: orange; }"
+          ],
+          "answer": "C",
+          "explanation": "優先度分數：A (p) = 1；B (.text) = 10；C (#main) = 100；D (div p) = 1+1 = 2。ID 選擇器（#）優先度最高（100），遠高於類別（10）和元素（1）。即使 D 有兩個選擇器，分數仍只有 2，遠小於 C 的 100。"
+        },
+        {
+          "id": 3,
+          "type": "multiple-choice",
+          "question": "關於 CSS Box Model，設定 box-sizing: border-box 後，width: 200px 代表什麼？",
+          "options": [
+            "A. content 寬度為 200px，加上 padding 和 border 後總寬度超過 200px",
+            "B. content + padding + border 的總寬度為 200px",
+            "C. 只有 border 的寬度為 200px",
+            "D. margin 也包含在 200px 以內"
+          ],
+          "answer": "B",
+          "explanation": "box-sizing: border-box（推薦做法）：width 包含 content + padding + border，總寬度固定 200px，不會因為設定 padding 而變大。預設的 content-box：width 只是 content 寬度，加上 padding 和 border 後實際佔用更大。margin 永遠不計入 width。"
+        }
+      ]
+    },
+    {
+      "id": "javascript",
+      "title": "JavaScript 基礎（DOM / 事件 / ES6）",
+      "content": "## 變數宣告\n\n```javascript\nvar x = 1;    // 舊式，函式作用域，可重複宣告（避免使用）\nlet y = 2;    // 區塊作用域，可重新賦值\nconst z = 3;  // 區塊作用域，不可重新賦值（常數）\n```\n\n## DOM 操作\n\n```javascript\n// 選取元素\nconst el  = document.getElementById('myId');\nconst els = document.querySelectorAll('.myClass');\nconst first = document.querySelector('h1');\n\n// 修改內容\nel.textContent = '新文字';   // 純文字（安全）\nel.innerHTML   = '<b>粗體</b>'; // HTML（小心 XSS）\n\n// 修改樣式\nel.style.color = 'red';\nel.classList.add('active');\nel.classList.remove('hidden');\nel.classList.toggle('open');\n\n// 修改屬性\nel.setAttribute('href', 'https://example.com');\nconst val = el.getAttribute('data-id');\n\n// 建立/新增元素\nconst div = document.createElement('div');\ndiv.textContent = '新節點';\ndocument.body.appendChild(div);\n```\n\n## 事件處理\n\n```javascript\n// 推薦：addEventListener（可綁定多個）\nbtn.addEventListener('click', function(event) {\n    event.preventDefault();  // 阻止預設行為（如表單送出）\n    event.stopPropagation(); // 阻止事件冒泡\n    console.log('被點擊了');\n});\n\n// 箭頭函式版本\nbtn.addEventListener('click', (e) => {\n    console.log(e.target);  // 觸發事件的元素\n});\n\n// 常用事件\n// click, dblclick, mouseover, mouseout\n// keydown, keyup, keypress\n// change, input, submit, focus, blur\n// DOMContentLoaded, load\n```\n\n## ES6+ 重要語法\n\n```javascript\n// 箭頭函式\nconst add = (a, b) => a + b;\n\n// 樣板字串（Template Literals）\nconst msg = `Hello, ${name}！你好`;\n\n// 解構賦值\nconst [first, second] = [1, 2];\nconst { name, age } = person;\n\n// 展開運算子\nconst arr2 = [...arr1, 4, 5];\nconst obj2 = { ...obj1, extra: true };\n\n// Promise / async-await\nasync function fetchData(url) {\n    try {\n        const res  = await fetch(url);\n        const data = await res.json();\n        return data;\n    } catch (err) {\n        console.error(err);\n    }\n}\n\n// 陣列方法\nconst nums = [1, 2, 3, 4, 5];\nnums.filter(n => n > 2);          // [3, 4, 5]\nnums.map(n => n * 2);             // [2, 4, 6, 8, 10]\nnums.reduce((acc, n) => acc + n, 0); // 15\nnums.find(n => n > 3);            // 4\n```",
+      "codeExample": "// 完整範例：動態清單 + 事件處理\ndocument.addEventListener('DOMContentLoaded', () => {\n  const input  = document.getElementById('taskInput');\n  const btn    = document.getElementById('addBtn');\n  const list   = document.getElementById('taskList');\n\n  btn.addEventListener('click', addTask);\n\n  // 按 Enter 也可新增\n  input.addEventListener('keydown', (e) => {\n    if (e.key === 'Enter') addTask();\n  });\n\n  function addTask() {\n    const text = input.value.trim();\n    if (!text) return;\n\n    const li = document.createElement('li');\n    li.textContent = text;\n\n    // 點擊 li 劃線表示完成\n    li.addEventListener('click', () =>\n      li.classList.toggle('done'));\n\n    list.appendChild(li);\n    input.value = '';  // 清空輸入框\n    input.focus();\n  }\n});",
+      "keyPoints": [
+        "let/const 是區塊作用域（ES6+），優先使用；避免 var（函式作用域，易出錯）",
+        "textContent 設定純文字（安全）；innerHTML 可設 HTML（需注意 XSS）",
+        "addEventListener 可綁多個處理器；event.preventDefault() 阻止預設行為",
+        "event.target 是實際觸發事件的元素；event.currentTarget 是綁定事件的元素",
+        "DOMContentLoaded 在 DOM 解析完成後觸發（比 load 早，load 等待所有資源）"
+      ],
+      "exercises": [
+        {
+          "id": 1,
+          "type": "coding",
+          "question": "請用 JavaScript 操作 DOM：取得 id 為 \"myList\" 的 `<ul>`，動態新增三個 `<li>` 項目（內容為 \"項目1\"、\"項目2\"、\"項目3\"），每個 li 被點擊時用 alert 顯示其文字內容。",
+          "answer": "const list = document.getElementById('myList');\n\nconst items = ['項目1', '項目2', '項目3'];\n\nitems.forEach(text => {\n    const li = document.createElement('li');\n    li.textContent = text;  // 使用 textContent 而非 innerHTML（安全）\n\n    li.addEventListener('click', function() {\n        alert(this.textContent);  // this 指向被點擊的 li\n    });\n\n    list.appendChild(li);\n});",
+          "explanation": "createElement 建立新節點；textContent 設純文字；addEventListener 綁事件；appendChild 加入父元素。注意：用 textContent 而非 innerHTML 避免 XSS。在 addEventListener 中用一般函式（非箭頭函式），this 才指向觸發事件的元素。"
+        },
+        {
+          "id": 2,
+          "type": "multiple-choice",
+          "question": "以下關於 JavaScript 的 let、var、const 的描述，何者正確？",
+          "options": [
+            "A. var 是區塊作用域，let 是函式作用域",
+            "B. const 宣告的變數完全不可修改，包含物件內部屬性",
+            "C. let 和 const 是區塊作用域，const 宣告後不可重新賦值",
+            "D. var、let、const 在作用域上完全相同"
+          ],
+          "answer": "C",
+          "explanation": "let 和 const 都是 ES6 區塊作用域（{}內有效）；var 是函式作用域（容易造成意外行為）。const 不可重新賦值（不能 const x = 1; x = 2），但若是物件/陣列，其內部屬性可修改（const obj = {}; obj.name = 'A' 合法）。"
+        },
+        {
+          "id": 3,
+          "type": "multiple-choice",
+          "question": "以下 JavaScript 程式碼的輸出為何？\n\n```javascript\nconst nums = [1, 2, 3, 4, 5];\nconst result = nums.filter(n => n % 2 === 0).map(n => n * 10);\nconsole.log(result);\n```",
+          "options": [
+            "A. [1, 3, 5]",
+            "B. [10, 20, 30, 40, 50]",
+            "C. [20, 40]",
+            "D. [2, 4]"
+          ],
+          "answer": "C",
+          "explanation": "filter(n => n % 2 === 0) 先過濾偶數 → [2, 4]；再 map(n => n * 10) 每個乘以 10 → [20, 40]。這是 JavaScript 函數式陣列操作的鏈式呼叫（Method Chaining），filter 不修改原陣列，回傳新陣列供 map 使用。"
+        },
+        {
+          "id": 4,
+          "type": "debugging",
+          "question": "以下程式碼想在點擊按鈕後將 `<p id=\"msg\">` 的文字改為「已送出！」，但沒有任何反應，請找出問題並修正：\n\n```html\n<p id=\"msg\">等待中...</p>\n<button id=\"sendBtn\">送出</button>\n\n<script>\n  const btn = document.getElementById('sendBtn');\n  btn.onclick = sendMessage;\n\n  function sendMessage() {\n    const p = document.querySelector('#msg');\n    p.innerHTML == '已送出！';\n  }\n</script>\n```",
+          "buggyCode": "const btn = document.getElementById('sendBtn');\nbtn.onclick = sendMessage;\n\nfunction sendMessage() {\n  const p = document.querySelector('#msg');\n  p.innerHTML == '已送出！';  // bug\n}",
+          "answer": "const btn = document.getElementById('sendBtn');\nbtn.onclick = sendMessage;\n\nfunction sendMessage() {\n  const p = document.querySelector('#msg');\n  p.textContent = '已送出！';  // == 改為 =，且用 textContent 更安全\n}",
+          "explanation": "兩個問題：(1) `==` 是比較運算子（比較是否相等），不會修改任何值；應改為 `=` 賦值運算子。(2) 設定純文字內容建議用 `textContent` 而非 `innerHTML`，避免 XSS 攻擊（若內容含 HTML 標籤會被解析執行）。"
+        }
+      ]
+    }
+  ]
+}
