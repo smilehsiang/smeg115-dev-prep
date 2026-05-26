@@ -1,0 +1,223 @@
+{
+  "chapter": 5,
+  "id": "ch05",
+  "title": "系統分析與 UML",
+  "priority": "第五優先",
+  "examWeight": "設計說明題 60%、選擇題 40%",
+  "color": "#e67e22",
+  "sections": [
+    {
+      "id": "class-diagram",
+      "title": "UML 類別圖（Class Diagram）",
+      "content": "類別圖（Class Diagram）描述系統中類別的結構及類別之間的靜態關係，是最常用的 UML 圖。\n\n## 類別表示法\n\n```\n┌─────────────────────┐\n│      ClassName      │  ← 類別名稱（粗體）\n├─────────────────────┤\n│ - privateField: int │  ← 屬性（欄位）\n│ # protectedProp: str│\n│ + PublicProp: bool  │\n├─────────────────────┤\n│ + Method(): void    │  ← 方法\n│ + GetName(): string │\n└─────────────────────┘\n```\n\n**存取修飾符號：**\n- `+` public\n- `-` private\n- `#` protected\n- `~` package（internal）\n\n## 類別關係\n\n### 繼承（Inheritance / Generalization）\n- 符號：空心三角箭頭（子類 → 父類）\n- C# 對應：`class Dog : Animal`\n- 語意：**「is-a」關係**（Dog is-a Animal）\n\n### 實作（Realization / Implementation）\n- 符號：虛線 + 空心三角箭頭（類別 → 介面）\n- C# 對應：`class Dog : IAnimal`\n\n### 組合（Composition）\n- 符號：實心菱形 ◆ → 部件（強擁有）\n- 語意：部件不能獨立存在（如 House ◆→ Room）\n- 部件的生命週期與整體相同\n\n### 聚合（Aggregation）\n- 符號：空心菱形 ◇ → 部件（弱擁有）\n- 語意：部件可獨立存在（如 Team ◇→ Player）\n- 部件可屬於多個整體\n\n### 關聯（Association）\n- 符號：實線箭頭 →\n- 語意：類別之間的一般關係（如 Customer → Order）\n\n### 依賴（Dependency）\n- 符號：虛線箭頭 ⇢\n- 語意：一個類別使用另一個類別（方法參數、區域變數）\n\n## 多重性（Multiplicity）\n\n| 符號 | 意義 |\n|------|------|\n| 1 | 剛好一個 |\n| 0..1 | 零或一個 |\n| * 或 0..* | 零或多個 |\n| 1..* | 一或多個 |\n| 2..5 | 二到五個 |\n\n範例：`Customer 1 ──── 0..* Order`（一位客戶有零或多個訂單）\n\n## 抽象類別與介面\n\n```\n«interface»          ← 介面標記（stereotype）\nIShape\n──────────\n+Area(): double\n+Perimeter(): double\n```\n\n```\n{abstract}           ← 抽象類別（或類別名稱用斜體）\nShape\n──────────\n+Color: string\n+Draw(): void {abstract}\n```",
+      "codeExample": "// 類別圖對應的 C# 程式碼範例\n// 關係：Order ◆→ OrderItem（組合）；Customer 1──* Order（關聯）\n\npublic class Customer\n{\n    public int    CustomerId { get; set; }\n    public string Name       { get; set; }\n    public List<Order> Orders { get; set; } = new List<Order>();\n}\n\npublic class Order\n{\n    public int      OrderId  { get; set; }\n    public DateTime OrderDate { get; set; }\n    public int      CustomerId { get; set; }\n\n    // 組合關係：OrderItem 屬於 Order，生命週期相同\n    private List<OrderItem> _items = new List<OrderItem>();\n    public IReadOnlyList<OrderItem> Items => _items;\n\n    public void AddItem(int productId, int qty, decimal price)\n        => _items.Add(new OrderItem(productId, qty, price));\n}\n\npublic class OrderItem\n{\n    public int     ProductId { get; }\n    public int     Qty       { get; }\n    public decimal UnitPrice { get; }\n\n    // 只能由 Order 建立（體現組合關係）\n    internal OrderItem(int productId, int qty, decimal price)\n    {\n        ProductId = productId;\n        Qty       = qty;\n        UnitPrice = price;\n    }\n}",
+      "keyPoints": [
+        "存取符號：+ public、- private、# protected",
+        "繼承用空心三角箭頭（is-a）；實作介面用虛線+空心三角",
+        "組合（◆）：部件不能獨立存在，生命週期依附整體",
+        "聚合（◇）：部件可獨立存在，弱擁有關係",
+        "多重性：1、0..1、*、1..*，寫在關係線兩端"
+      ],
+      "exercises": [
+        {
+          "id": 1,
+          "type": "coding",
+          "question": "請根據以下描述，畫出（文字描述）UML 類別圖並寫出對應的 C# 類別骨架：\n- Shape（抽象類別）：有 Color（string）屬性，有抽象方法 Area()（回傳 double）\n- Circle 繼承 Shape：有 Radius（double）屬性，實作 Area()\n- Rectangle 繼承 Shape：有 Width、Height（double）屬性，實作 Area()",
+          "answer": "// UML 類別圖（文字描述）：\n// ┌──────────────────┐\n// │  {abstract}Shape │\n// ├──────────────────┤\n// │ + Color: string  │\n// ├──────────────────┤\n// │ + Area(): double │ {abstract}\n// └────────┬─────────┘\n//          △ (繼承，空心三角)\n//    ┌─────┴──────┐\n//    │            │\n// ┌──┴───┐  ┌────┴──────┐\n// │Circle│  │ Rectangle │\n// ├──────┤  ├───────────┤\n// │+Radius│ │+Width     │\n// │:double│ │+Height    │\n// ├──────┤  │:double    │\n// │+Area()│ ├───────────┤\n// └──────┘  │+Area()    │\n//           └───────────┘\n\n// 對應 C# 程式碼：\npublic abstract class Shape\n{\n    public string Color { get; set; }\n    public abstract double Area();\n}\n\npublic class Circle : Shape\n{\n    public double Radius { get; set; }\n    public override double Area() => Math.PI * Radius * Radius;\n}\n\npublic class Rectangle : Shape\n{\n    public double Width  { get; set; }\n    public double Height { get; set; }\n    public override double Area() => Width * Height;\n}",
+          "explanation": "抽象類別在 UML 中類別名稱用斜體或標記 {abstract}，抽象方法也標記 {abstract}。繼承關係用空心三角箭頭從子類指向父類。C# 對應：abstract class + abstract method + override。"
+        },
+        {
+          "id": 2,
+          "type": "coding",
+          "question": "請說明「組合（Composition）」與「聚合（Aggregation）」的差異，並各舉一個生活中的例子，寫出對應的 C# 程式碼片段。",
+          "answer": "// 組合（Composition）：強擁有，部件不能脫離整體獨立存在\n// 例子：人體（Body）與心臟（Heart）\n// Heart 的生命週期與 Body 相同\n\npublic class Heart\n{\n    public int BPM { get; set; }\n}\n\npublic class Body\n{\n    // 組合：Heart 在 Body 建構時建立，Body 消滅時 Heart 也消滅\n    private readonly Heart _heart = new Heart { BPM = 72 };\n    public int HeartRate => _heart.BPM;\n}\n\n// ─────────────────────────────────────────\n\n// 聚合（Aggregation）：弱擁有，部件可獨立存在\n// 例子：球隊（Team）與球員（Player）\n// Player 可以不屬於任何 Team，也可以轉隊\n\npublic class Player\n{\n    public string Name { get; set; }\n}\n\npublic class Team\n{\n    private List<Player> _players = new List<Player>();\n\n    // 聚合：Player 從外部傳入，Team 消失後 Player 仍存在\n    public void AddPlayer(Player p) => _players.Add(p);\n    public void RemovePlayer(Player p) => _players.Remove(p);\n}",
+          "explanation": "組合（實心菱形 ◆）：整體建立部件，整體消滅部件也消滅，部件不能共享。聚合（空心菱形 ◇）：整體透過方法接受外部傳入的部件，部件可以在整體之外獨立存在，可以被多個整體共享。"
+        },
+        {
+          "id": 3,
+          "type": "multiple-choice",
+          "question": "UML 類別圖中，「實心菱形（◆）」表示的關係是？",
+          "options": [
+            "A. 依賴（Dependency）—— 虛線箭頭",
+            "B. 繼承（Inheritance）—— 空心三角箭頭",
+            "C. 組合（Composition）—— 部件不能獨立於整體存在",
+            "D. 聚合（Aggregation）—— 部件可獨立存在"
+          ],
+          "answer": "C",
+          "explanation": "實心菱形（◆）= 組合（Composition），強擁有，部件生命週期與整體相同，不能獨立存在。空心菱形（◇）= 聚合（Aggregation），弱擁有，部件可獨立存在。繼承是空心三角；依賴是虛線箭頭。"
+        },
+        {
+          "id": 4,
+          "type": "multiple-choice",
+          "question": "UML 類別圖中的多重性「1..*」表示什麼？",
+          "options": [
+            "A. 只能有一個",
+            "B. 零個或一個",
+            "C. 一個或多個（至少一個）",
+            "D. 零個或多個"
+          ],
+          "answer": "C",
+          "explanation": "1..* 表示「一或多個」（至少一個）。0..1 = 零或一個；* 或 0..* = 零或多個；1 = 恰好一個。例如 Department 1..* Employee 表示一個部門至少有一位員工。"
+        }
+      ]
+    },
+    {
+      "id": "design-patterns",
+      "title": "設計模式（Singleton / Repository / Factory）",
+      "content": "設計模式（Design Patterns）是解決常見設計問題的可重用解決方案，考試常考 Singleton 和 Repository。\n\n## Singleton（單例模式）\n\n**目的**：確保類別只有一個實例，並提供全域存取點。\n\n**使用場景**：設定管理器、日誌系統、資料庫連線池、Cache。\n\n```csharp\n// 執行緒安全的 Singleton（Lazy 初始化）\npublic sealed class AppConfig\n{\n    // 1. 私有靜態實例\n    private static readonly Lazy<AppConfig> _instance =\n        new Lazy<AppConfig>(() => new AppConfig());\n\n    // 2. 私有建構子（防止外部 new）\n    private AppConfig() { }\n\n    // 3. 公開靜態存取點\n    public static AppConfig Instance => _instance.Value;\n\n    // 4. 實際功能\n    public string ConnectionString { get; private set; }\n        = \"Server=.;Database=App;Integrated Security=True\";\n}\n\n// 使用方式\nstring cs = AppConfig.Instance.ConnectionString;\n```\n\n**雙重檢查鎖定（Double-Checked Locking）**（了解即可）：\n```csharp\nprivate static volatile Singleton _instance;\nprivate static readonly object _lock = new object();\npublic static Singleton Instance\n{\n    get\n    {\n        if (_instance == null)\n            lock (_lock)\n                if (_instance == null)\n                    _instance = new Singleton();\n        return _instance;\n    }\n}\n```\n\n## Repository Pattern（儲存庫模式）\n\n**目的**：將資料存取邏輯與業務邏輯分離，透過介面抽象化資料來源。\n\n**好處**：\n- 業務層不依賴具體 DB 實作（易替換、易測試）\n- 統一的資料存取 API\n- 方便用 Mock 替換進行單元測試\n\n```csharp\n// 1. 定義泛型介面\npublic interface IRepository<T> where T : class\n{\n    T       GetById(int id);\n    IEnumerable<T> GetAll();\n    void    Add(T entity);\n    void    Update(T entity);\n    void    Delete(int id);\n}\n\n// 2. 具體實作（SQL Server）\npublic class EmployeeRepository : IRepository<Employee>\n{\n    private readonly string _cs;\n    public EmployeeRepository(string connectionString)\n        => _cs = connectionString;\n\n    public Employee GetById(int id)\n    {\n        using var conn = new SqlConnection(_cs);\n        using var cmd  = new SqlCommand(\n            \"SELECT * FROM Employees WHERE EmpId=@Id\", conn);\n        cmd.Parameters.AddWithValue(\"@Id\", id);\n        conn.Open();\n        using var reader = cmd.ExecuteReader();\n        if (reader.Read())\n            return new Employee\n            {\n                EmpId = reader.GetInt32(0),\n                Name  = reader.GetString(1)\n            };\n        return null;\n    }\n    // ... 其他方法\n}\n\n// 3. 業務層只依賴介面\npublic class EmployeeService\n{\n    private readonly IRepository<Employee> _repo;\n    public EmployeeService(IRepository<Employee> repo)\n        => _repo = repo;  // 依賴注入\n\n    public Employee GetEmployee(int id) => _repo.GetById(id);\n}\n```\n\n## Factory Method（工廠方法，簡介）\n\n**目的**：將物件建立邏輯封裝，由子類決定實例化哪個類別。\n\n```csharp\npublic abstract class Logger\n{\n    public abstract void Log(string message);\n    // Factory Method\n    public static Logger Create(string type) => type switch\n    {\n        \"file\"    => new FileLogger(),\n        \"console\" => new ConsoleLogger(),\n        _         => throw new ArgumentException()\n    };\n}\n```\n\n## SOLID 原則（與設計模式相關）\n\n| 原則 | 說明 |\n|------|------|\n| S — Single Responsibility | 一個類別只有一個改變的理由 |\n| O — Open/Closed | 對擴充開放，對修改關閉 |\n| L — Liskov Substitution | 子類可替換父類使用 |\n| I — Interface Segregation | 不強迫實作用不到的介面方法 |\n| D — Dependency Inversion | 依賴抽象，不依賴具體實作 |",
+      "codeExample": "// Singleton + Repository 結合實例\n// 用 Singleton 管理 Repository 工廠\n\npublic sealed class RepositoryFactory\n{\n    private static readonly Lazy<RepositoryFactory> _instance =\n        new Lazy<RepositoryFactory>(() => new RepositoryFactory());\n\n    private readonly string _cs;\n\n    private RepositoryFactory()\n    {\n        _cs = System.Configuration.ConfigurationManager\n            .ConnectionStrings[\"AppDb\"].ConnectionString;\n    }\n\n    public static RepositoryFactory Instance => _instance.Value;\n\n    public IRepository<Employee> GetEmployeeRepository()\n        => new EmployeeRepository(_cs);\n\n    public IRepository<Order> GetOrderRepository()\n        => new OrderRepository(_cs);\n}\n\n// 使用\nvar empRepo = RepositoryFactory.Instance.GetEmployeeRepository();\nvar emp = empRepo.GetById(1);",
+      "keyPoints": [
+        "Singleton：私有建構子 + 靜態實例 + 公開靜態存取點（Instance）",
+        "Lazy<T> 實作執行緒安全的延遲初始化 Singleton",
+        "Repository：業務層透過 IRepository 介面存取資料，不依賴具體 DB 實作",
+        "依賴注入（DI）：Service 透過建構子接受 IRepository，方便測試和替換",
+        "SOLID 的 D（Dependency Inversion）：高層模組依賴抽象介面，是 Repository 的設計基礎"
+      ],
+      "exercises": [
+        {
+          "id": 1,
+          "type": "coding",
+          "question": "請用 C# 實作一個執行緒安全的 Singleton 類別 Logger，使用 Lazy<T> 確保延遲初始化。Logger 有一個 Log(string message) 方法，將訊息印到 Console 並附上時間戳。",
+          "answer": "public sealed class Logger\n{\n    // Lazy<T> 保證執行緒安全且延遲初始化\n    private static readonly Lazy<Logger> _instance =\n        new Lazy<Logger>(() => new Logger());\n\n    // 私有建構子，防止外部 new Logger()\n    private Logger() { }\n\n    // 公開靜態存取點\n    public static Logger Instance => _instance.Value;\n\n    public void Log(string message)\n    {\n        string timestamp = DateTime.Now.ToString(\"yyyy-MM-dd HH:mm:ss\");\n        Console.WriteLine($\"[{timestamp}] {message}\");\n    }\n}\n\n// 使用方式\nLogger.Instance.Log(\"應用程式啟動\");\nLogger.Instance.Log(\"使用者登入\");",
+          "explanation": "Singleton 三要素：(1) private 建構子防止外部建立；(2) static readonly 儲存唯一實例；(3) static 存取點（Instance）。Lazy<T> 由 .NET 保證執行緒安全（等同雙重檢查鎖定），且只在第一次存取時初始化。sealed 防止繼承（子類可能建立新實例）。"
+        },
+        {
+          "id": 2,
+          "type": "coding",
+          "question": "請定義 IProductRepository 介面（方法：GetById、GetAll、Add、Delete），並寫出一個簡化的 InMemoryProductRepository 實作（用 List<Product> 當儲存體），供單元測試使用。",
+          "answer": "public class Product\n{\n    public int    Id    { get; set; }\n    public string Name  { get; set; }\n    public decimal Price { get; set; }\n}\n\npublic interface IProductRepository\n{\n    Product             GetById(int id);\n    IEnumerable<Product> GetAll();\n    void Add(Product product);\n    void Delete(int id);\n}\n\n// 記憶體實作，用於單元測試（Mock）\npublic class InMemoryProductRepository : IProductRepository\n{\n    private readonly List<Product> _store = new List<Product>();\n\n    public Product GetById(int id)\n        => _store.FirstOrDefault(p => p.Id == id);\n\n    public IEnumerable<Product> GetAll()\n        => _store.AsReadOnly();\n\n    public void Add(Product product)\n    {\n        if (_store.Any(p => p.Id == product.Id))\n            throw new InvalidOperationException(\"ID 已存在\");\n        _store.Add(product);\n    }\n\n    public void Delete(int id)\n    {\n        var p = GetById(id);\n        if (p != null) _store.Remove(p);\n    }\n}",
+          "explanation": "Repository Pattern 的核心價值：業務層（Service）只依賴 IProductRepository 介面。生產環境用 SqlProductRepository（連 SQL Server），測試環境換成 InMemoryProductRepository，不需修改業務邏輯。這是 SOLID 中 D（Dependency Inversion）的體現。"
+        },
+        {
+          "id": 3,
+          "type": "multiple-choice",
+          "question": "Singleton 模式的主要目的是？",
+          "options": [
+            "A. 讓類別可以被繼承多次，產生多個特化版本",
+            "B. 確保類別在整個應用程式中只有一個實例，並提供全域存取點",
+            "C. 將物件建立邏輯封裝在工廠類別中",
+            "D. 透過介面隔離資料存取層與業務邏輯層"
+          ],
+          "answer": "B",
+          "explanation": "Singleton 保證單一實例並提供全域存取（Instance 屬性）。C 是 Factory Pattern；D 是 Repository Pattern；A 描述的不是任何標準設計模式的目的。Singleton 常用於設定管理、Log 系統、Connection Pool 等全域唯一的服務。"
+        },
+        {
+          "id": 4,
+          "type": "multiple-choice",
+          "question": "Repository Pattern 的主要優點是？",
+          "options": [
+            "A. 讓 SQL 查詢效能最佳化，直接存取資料庫底層",
+            "B. 將資料存取邏輯與業務邏輯分離，業務層透過介面操作資料，易於測試和替換",
+            "C. 自動產生 CRUD 的 SQL 語句，不需手寫 SQL",
+            "D. 確保資料庫連線只有一個實例"
+          ],
+          "answer": "B",
+          "explanation": "Repository Pattern 的核心是「依賴抽象介面而非具體實作」：業務層只知道 IRepository，不知道背後是 SQL Server、Oracle 還是記憶體。優點：(1) 易替換資料來源；(2) 測試時可用 Mock/InMemory 替換；(3) 業務邏輯更清晰。A/C/D 都不是 Repository 的主要目的。"
+        }
+      ]
+    },
+    {
+      "id": "sequence-diagram",
+      "title": "循序圖（Sequence Diagram）與使用案例圖",
+      "content": "## 循序圖（Sequence Diagram）\n\n循序圖描述物件之間**訊息傳遞的時序**，強調「誰在什麼時間呼叫誰」。\n\n### 元素說明\n\n```\n瀏覽器          WebServer        Database\n  │                │                │\n  │─── HTTP GET ──>│                │\n  │                │─── SELECT ────>│\n  │                │<── ResultSet ──│\n  │<── HTML ───────│                │\n  │                │                │\n```\n\n| 元素 | 符號 | 說明 |\n|------|------|------|\n| 參與者（Actor/Object）| 方框 + 虛線 | 頁面頂端 |\n| 生命線（Lifeline）| 垂直虛線 | 物件存活期間 |\n| 活化框（Activation Box）| 細長方框 | 物件正在執行 |\n| 訊息（Message）| 實線箭頭 →  | 同步呼叫 |\n| 回傳（Return）| 虛線箭頭 ⇢ | 回傳值 |\n| 自呼叫（Self-call）| 折回箭頭 | 物件呼叫自己的方法 |\n\n### 循序圖範例：使用者登入流程\n\n```\n使用者      LoginPage     AuthService     UserDB\n  │             │              │             │\n  │─填入帳密──>│              │             │\n  │             │─Validate()──>│             │\n  │             │              │──SELECT────>│\n  │             │              │<──User─────│\n  │             │              │─驗證密碼    │\n  │             │<─true/false──│             │\n  │<─顯示結果──│              │             │\n```\n\n## 使用案例圖（Use Case Diagram）\n\n描述系統功能與使用者（Actor）之間的互動，回答「系統能做什麼」。\n\n```\n┌────────────────────────────────┐\n│          訂單系統               │\n│                                │\n│  ┌──────────┐  ┌────────────┐  │\n│  │ 查詢訂單  │  │  建立訂單  │  │\n│  └──────────┘  └────────────┘  │\n│                                │\n│  ┌──────────┐  ┌────────────┐  │\n│  │ 取消訂單  │  │  付款      │  │\n│  └──────────┘  └────────────┘  │\n└────────────────────────────────┘\n     ↑                  ↑\n  客戶（Actor）     管理員（Actor）\n```\n\n### 關係\n- **include（包含）**：A include B → A 一定會執行 B（如「建立訂單」include「驗證庫存」）\n- **extend（擴充）**：A extend B → 特定條件下 A 才被執行（如「折扣計算」extend「結帳」）\n\n## 活動圖（Activity Diagram）\n\n描述業務流程或演算法的流程，類似流程圖，有決策菱形、Fork/Join（平行）等元素。",
+      "codeExample": "// 循序圖對應的 C# 呼叫鏈\n// 對應「使用者登入」循序圖的程式碼結構\n\n// LoginPage.aspx.cs（對應 LoginPage 參與者）\nprotected void btnLogin_Click(object sender, EventArgs e)\n{\n    var service = new AuthService();\n    bool success = service.Validate(\n        txtUsername.Text, txtPassword.Text);\n\n    if (success)\n        Response.Redirect(\"~/Dashboard.aspx\");\n    else\n        lblError.Text = \"帳號或密碼錯誤\";\n}\n\n// AuthService.cs（對應 AuthService 參與者）\npublic class AuthService\n{\n    private readonly IUserRepository _repo;\n\n    public AuthService() => _repo = new UserRepository();\n\n    public bool Validate(string username, string password)\n    {\n        // 對應循序圖中 AuthService → UserDB 的訊息\n        var user = _repo.GetByUsername(username);\n        if (user == null) return false;\n\n        // 自呼叫：驗證密碼邏輯\n        return VerifyPassword(password, user.PasswordHash);\n    }\n\n    private bool VerifyPassword(string input, string hash)\n        => BCrypt.Verify(input, hash);\n}",
+      "keyPoints": [
+        "循序圖的時間軸是垂直向下，越下面的訊息越晚發生",
+        "實線箭頭 = 同步呼叫（等待回應）；虛線箭頭 = 回傳值",
+        "使用案例圖描述「系統能做什麼」，不描述「怎麼做」",
+        "include：A 執行時必定執行 B；extend：特定條件才觸發",
+        "循序圖可直接對應程式碼的呼叫鏈，是設計與實作的橋樑"
+      ],
+      "exercises": [
+        {
+          "id": 1,
+          "type": "coding",
+          "question": "請用文字描述「線上購物結帳」的循序圖，參與者包含：Customer（使用者）、ShoppingCart（購物車頁面）、OrderService（訂單服務）、PaymentGateway（金流服務）、Database（資料庫）。描述從點擊「結帳」到「訂單建立完成」的完整訊息流。",
+          "answer": "// 循序圖文字描述（由上到下，時間順序）：\n\n// Customer ──點擊結帳──> ShoppingCart\n// ShoppingCart ──PlaceOrder(items, userId)──> OrderService\n// OrderService ──CheckStock(items)──> Database\n// Database ──庫存結果──> OrderService\n// [若庫存不足：OrderService ──錯誤訊息──> ShoppingCart ──顯示錯誤──> Customer]\n// OrderService ──Charge(amount, cardInfo)──> PaymentGateway\n// PaymentGateway ──付款結果──> OrderService\n// [若付款失敗：OrderService ──付款失敗──> ShoppingCart ──> Customer]\n// OrderService ──SaveOrder(order)──> Database\n// Database ──orderId──> OrderService\n// OrderService ──OrderResult(orderId)──> ShoppingCart\n// ShoppingCart ──顯示訂單確認頁──> Customer\n\n// 對應的 C# 呼叫鏈：\npublic class OrderService\n{\n    public OrderResult PlaceOrder(List<CartItem> items, int userId)\n    {\n        // 1. 檢查庫存\n        if (!_db.CheckStock(items))\n            return OrderResult.Fail(\"庫存不足\");\n\n        // 2. 呼叫金流\n        var payResult = _payment.Charge(items.Sum(i => i.Total));\n        if (!payResult.Success)\n            return OrderResult.Fail(\"付款失敗\");\n\n        // 3. 儲存訂單\n        int orderId = _db.SaveOrder(new Order(userId, items));\n        return OrderResult.Ok(orderId);\n    }\n}",
+          "explanation": "循序圖的訊息流對應程式碼的方法呼叫順序。包含條件片段（alt/opt）處理異常路徑。關鍵：時間由上到下，同步呼叫（實線）等待回應，回傳用虛線。PaymentGateway 是外部系統，在邊界上特別重要。"
+        },
+        {
+          "id": 2,
+          "type": "multiple-choice",
+          "question": "循序圖（Sequence Diagram）中，虛線箭頭（⇢）代表什麼？",
+          "options": [
+            "A. 非同步訊息（fire and forget）",
+            "B. 物件建立訊息",
+            "C. 方法的回傳值（Return message）",
+            "D. 條件判斷分支"
+          ],
+          "answer": "C",
+          "explanation": "循序圖中：實線箭頭（→）= 同步呼叫（傳送訊息並等待）；虛線箭頭（⇢）= 回傳值（return）。非同步訊息通常用開放箭頭；物件建立用 <<create>> 標記；條件判斷用 alt 片段框。"
+        },
+        {
+          "id": 3,
+          "type": "multiple-choice",
+          "question": "使用案例圖中的 <<include>> 與 <<extend>> 關係，以下說明何者正確？",
+          "options": [
+            "A. <<include>>：被包含的 Use Case 只在特定條件下才執行",
+            "B. <<extend>>：擴充的 Use Case 一定會在基本 Use Case 執行時被觸發",
+            "C. <<include>>：基本 Use Case 執行時必定包含執行被包含的 Use Case",
+            "D. <<extend>> 和 <<include>> 的語意相同，只是方向相反"
+          ],
+          "answer": "C",
+          "explanation": "<<include>>：A include B，A 執行時「必定」執行 B（強制包含）。<<extend>>：A extend B，只在「特定條件」下才觸發 A（選擇性擴充）。例如：「結帳」include「驗證登入」（必定驗證）；「折扣計算」extend「結帳」（只有符合條件才折扣）。"
+        },
+        {
+          "id": 4,
+          "type": "coding",
+          "question": "請說明循序圖（Sequence Diagram）和類別圖（Class Diagram）各自描述系統的哪個面向，並說明兩者在系統設計中如何互補。",
+          "answer": "// 類別圖（Class Diagram）—— 靜態結構視角\n// 描述：系統有哪些類別、類別有哪些屬性和方法、類別之間的關係\n// 回答：「系統的結構是什麼？」\n// 時間：設計階段，展示系統架構\n// 範例：Customer 類別有 Name/Email，與 Order 是 1..* 關係\n\n// 循序圖（Sequence Diagram）—— 動態行為視角\n// 描述：特定情境下物件之間的訊息傳遞順序與時序\n// 回答：「系統在特定情境下如何運作？」\n// 時間：詳細設計階段，展示執行流程\n// 範例：登入流程中，LoginPage 呼叫 AuthService，\n//       AuthService 查詢 DB，回傳結果給 LoginPage\n\n// 互補關係：\n// 1. 類別圖確定「有哪些物件和方法」\n// 2. 循序圖確定「這些方法在執行時如何被呼叫」\n// 3. 類別圖上看到 AuthService.Validate()，\n//    循序圖說明它在哪個情境被 LoginPage 呼叫\n// 4. 兩者合用：完整描述系統的靜態結構與動態行為",
+          "explanation": "類別圖 = 靜態藍圖（what exists）；循序圖 = 動態腳本（what happens when）。設計流程：先用類別圖規劃結構，再用循序圖驗證各 Use Case 的實現是否完整（循序圖中的訊息對應類別圖中的方法）。"
+        }
+      ]
+    },
+    {
+      "id": "sdlc",
+      "title": "系統開發流程（SDLC / 瀑布 / 敏捷）",
+      "content": "## 軟體開發生命週期（SDLC）\n\n傳統 SDLC 包含六個階段：\n\n1. **需求分析（Requirements）**：了解客戶需求，產出 SRS（系統需求規格書）\n2. **系統設計（Design）**：架構設計、資料庫設計、UI 設計，產出設計文件\n3. **實作（Implementation）**：撰寫程式碼\n4. **測試（Testing）**：Unit Test、整合測試、UAT（使用者驗收測試）\n5. **部署（Deployment）**：上線、資料移轉\n6. **維護（Maintenance）**：Bug 修復、功能新增\n\n## 瀑布模型（Waterfall Model）\n\n**特點**：各階段嚴格順序執行，前一階段完成才進入下一階段。\n\n```\n需求 → 設計 → 實作 → 測試 → 部署 → 維護\n```\n\n**優點**：\n- 文件完整，過程可控\n- 適合需求明確且穩定的專案\n\n**缺點**：\n- 需求變更困難（後期改動代價高）\n- 使用者晚期才看到系統，反饋循環慢\n\n## 敏捷開發（Agile）\n\n以「Sprint」（衝刺，通常 1-4 週）為單位迭代交付可用軟體。\n\n**核心價值（Agile Manifesto）**：\n- 個人與互動 > 流程與工具\n- 可用軟體 > 完整文件\n- 客戶協作 > 合約談判\n- 回應變化 > 遵循計畫\n\n**Scrum 框架**：\n\n| 角色 | 職責 |\n|------|------|\n| Product Owner | 管理 Product Backlog，代表客戶 |\n| Scrum Master | 移除障礙，確保 Scrum 流程 |\n| Dev Team | 自組織，實作 Sprint Backlog |\n\n**Scrum 活動**：\n- Sprint Planning → Daily Scrum（15 分鐘站立會議）→ Sprint Review → Sprint Retrospective\n\n## 瀑布 vs 敏捷\n\n| | 瀑布 | 敏捷 |\n|--|------|------|\n| 交付方式 | 一次性最終交付 | 迭代交付 |\n| 需求變更 | 困難 | 歡迎 |\n| 客戶參與 | 初期和最終 | 持續 |\n| 文件 | 大量前期文件 | 輕量文件 |\n| 適用 | 需求固定、大型政府專案 | 需求易變、新創或產品開發 |\n\n## 版本控制（Git 基礎）\n\n```bash\ngit init           # 初始化\ngit add .          # 加入暫存區\ngit commit -m \"\"   # 提交\ngit branch feature # 建立分支\ngit merge feature  # 合併\ngit pull / push    # 同步遠端\n```",
+      "codeExample": "// 測試驅動開發（TDD）— 敏捷常用實踐\n// Red → Green → Refactor 循環\n\n// 步驟 1：先寫失敗的測試（Red）\n[TestClass]\npublic class CalculatorTests\n{\n    [TestMethod]\n    public void Add_TwoPositiveNumbers_ReturnsSum()\n    {\n        var calc = new Calculator();\n        int result = calc.Add(3, 5);\n        Assert.AreEqual(8, result);  // 此時 Calculator 不存在，測試失敗\n    }\n}\n\n// 步驟 2：寫最少程式碼讓測試通過（Green）\npublic class Calculator\n{\n    public int Add(int a, int b) => a + b;\n}\n\n// 步驟 3：重構（Refactor）— 改善程式碼品質，測試仍需通過",
+      "keyPoints": [
+        "SDLC 六階段：需求 → 設計 → 實作 → 測試 → 部署 → 維護",
+        "瀑布：嚴格順序，需求固定時用；敏捷：迭代交付，需求易變時用",
+        "Scrum 三角色：Product Owner、Scrum Master、Dev Team",
+        "Sprint = 固定時間盒（1-4 週），每個 Sprint 結束交付可用軟體",
+        "TDD：先寫測試（Red）→ 寫程式碼（Green）→ 重構（Refactor）"
+      ],
+      "exercises": [
+        {
+          "id": 1,
+          "type": "multiple-choice",
+          "question": "瀑布模型（Waterfall Model）與敏捷開發（Agile）的主要差異是？",
+          "options": [
+            "A. 瀑布模型不需要測試階段，敏捷每個 Sprint 都要測試",
+            "B. 瀑布模型一次性交付最終產品，敏捷以短迭代持續交付可用軟體",
+            "C. 敏捷不需要需求分析，瀑布需要完整需求文件",
+            "D. 瀑布模型適合需求頻繁變動的新創專案"
+          ],
+          "answer": "B",
+          "explanation": "瀑布：嚴格順序，所有階段完成才交付最終產品，需求變更困難。敏捷：以 Sprint（1-4 週）為單位迭代，每次交付可運行的軟體，歡迎需求變化。A 錯（兩者都有測試）；C 錯（敏捷也有需求，只是方式較輕量）；D 錯（瀑布適合需求穩定的專案）。"
+        },
+        {
+          "id": 2,
+          "type": "multiple-choice",
+          "question": "在 Scrum 框架中，「每日站立會議（Daily Scrum）」的主要目的是？",
+          "options": [
+            "A. 向客戶展示最新的軟體功能",
+            "B. 規劃下一個 Sprint 的工作項目",
+            "C. 團隊同步進度，識別阻礙（Impediments）",
+            "D. 回顧 Sprint 的改善事項"
+          ],
+          "answer": "C",
+          "explanation": "Daily Scrum（每日站立，15 分鐘）：每位成員回答三個問題：(1) 昨天做了什麼？(2) 今天要做什麼？(3) 有什麼阻礙？目的是快速同步狀態、發現問題。A 是 Sprint Review；B 是 Sprint Planning；D 是 Sprint Retrospective。"
+        },
+        {
+          "id": 3,
+          "type": "coding",
+          "question": "請說明軟體測試的三個層次（Unit Test、Integration Test、UAT），並用 C# 範例寫出一個 Unit Test（使用 MSTest）測試 Calculator.Add 方法。",
+          "answer": "// 三個測試層次：\n\n// 1. 單元測試（Unit Test）\n// 測試最小可測試單元（單一方法或類別）\n// 隔離外部依賴（用 Mock 替換 DB、API）\n// 執行最快，數量最多\n\n// 2. 整合測試（Integration Test）\n// 測試多個元件協同運作（如 Service + DB）\n// 需要真實或測試用的外部資源\n// 執行較慢\n\n// 3. 使用者驗收測試（UAT - User Acceptance Test）\n// 由客戶或終端使用者執行\n// 驗證系統是否符合業務需求\n// 上線前最後一道關卡\n\n// MSTest Unit Test 範例：\nusing Microsoft.VisualStudio.TestTools.UnitTesting;\n\n[TestClass]\npublic class CalculatorTests\n{\n    private Calculator _calc;\n\n    [TestInitialize]\n    public void Setup() => _calc = new Calculator();\n\n    [TestMethod]\n    public void Add_PositiveNumbers_ReturnsCorrectSum()\n    {\n        int result = _calc.Add(3, 5);\n        Assert.AreEqual(8, result);\n    }\n\n    [TestMethod]\n    public void Add_NegativeNumbers_ReturnsCorrectSum()\n    {\n        int result = _calc.Add(-3, -5);\n        Assert.AreEqual(-8, result);\n    }\n\n    [TestMethod]\n    public void Add_ZeroAndNumber_ReturnsNumber()\n    {\n        int result = _calc.Add(0, 7);\n        Assert.AreEqual(7, result);\n    }\n}",
+          "explanation": "測試金字塔：底層大量 Unit Test（快速、隔離）→ 中層 Integration Test（驗證整合）→ 頂層少量 UAT（人工驗證）。MSTest 屬性：[TestClass] 標記測試類別；[TestMethod] 標記測試方法；[TestInitialize] 每個測試前執行（Setup）。Assert.AreEqual(expected, actual) 驗證結果。"
+        }
+      ]
+    }
+  ]
+}
