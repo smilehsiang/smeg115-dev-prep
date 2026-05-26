@@ -1,0 +1,437 @@
+{
+  "chapter": 3,
+  "id": "ch03",
+  "title": "ASP.NET Web Forms",
+  "priority": "第三優先",
+  "examWeight": "問答題 40%、選擇題 40%、程式碼填空 20%",
+  "color": "#8e44ad",
+  "sections": [
+    {
+      "id": "page-lifecycle",
+      "title": "Page 生命週期與 PostBack",
+      "content": "ASP.NET Web Forms 的 Page 生命週期（Page Life Cycle）是考試必考主題，每次請求都會觸發一系列固定的事件序列。\n\n## Page 生命週期事件順序\n\n1. **PreInit** — 最早期，可動態設定 MasterPage 與 Theme\n2. **Init** — 控制項初始化，ViewState 尚未載入\n3. **InitComplete** — Init 完成\n4. **PreLoad** — Load 前\n5. **Load** (`Page_Load`) — 最常用，ViewState 已載入，可存取控制項值\n6. **Control events** — 按鈕點擊等控制項事件（如 `Button_Click`）\n7. **LoadComplete**\n8. **PreRender** — 最後修改控制項的時機\n9. **SaveStateComplete** — ViewState 儲存完畢\n10. **Render** — 輸出 HTML\n11. **Unload** — 清理資源\n\n## IsPostBack\n\n```csharp\nprotected void Page_Load(object sender, EventArgs e)\n{\n    if (!IsPostBack)\n    {\n        // 只在第一次載入時執行（非回傳時）\n        BindDropDownList();\n    }\n}\n```\n\n- `IsPostBack = false`：第一次載入頁面（GET）\n- `IsPostBack = true`：表單回傳（POST，如按下 Button）\n\n## Code-Behind 模式\n\n```aspx\n<%@ Page Language=\"C#\" AutoEventWireup=\"true\"\n         CodeBehind=\"Default.aspx.cs\"\n         Inherits=\"MyApp.Default\" %>\n```\n\n- `.aspx`：HTML 標記與 Web 控制項宣告\n- `.aspx.cs`：Code-Behind，繼承 `System.Web.UI.Page`\n- `AutoEventWireup=\"true\"`：自動將 `Page_Load` 等命名方法連接到對應事件\n\n## 控制項事件觸發條件\n\n- Button 的 `Click` 事件：在 **Load 之後**才觸發\n- 因此 `Page_Load` 永遠在 `Button_Click` 之前執行\n- DropDownList 的 `SelectedIndexChanged`：需設 `AutoPostBack=\"true\"` 才會立即回傳\n\n## Response / Request\n\n```csharp\n// 重新導向\nResponse.Redirect(\"~/Login.aspx\");\n\n// 取得 QueryString\nstring id = Request.QueryString[\"id\"];\n\n// 取得表單值\nstring name = Request.Form[\"txtName\"];\n```\n\n## Server.Transfer vs Response.Redirect\n\n| | Server.Transfer | Response.Redirect |\n|---|---|---|\n| 執行位置 | 伺服器端轉換 | 瀏覽器重新請求 |\n| URL 變化 | 不變 | 改變 |\n| 效能 | 較好（一次請求）| 較差（兩次請求）|\n| 跨站 | 不支援 | 支援 |",
+      "codeExample": "// Default.aspx.cs — 典型 Page_Load 與 Button_Click 範例\npublic partial class Default : System.Web.UI.Page\n{\n    protected void Page_Load(object sender, EventArgs e)\n    {\n        if (!IsPostBack)\n        {\n            // 第一次載入：初始化下拉清單\n            ddlCategory.DataSource = GetCategories();\n            ddlCategory.DataTextField  = \"CategoryName\";\n            ddlCategory.DataValueField = \"CategoryId\";\n            ddlCategory.DataBind();\n            ddlCategory.Items.Insert(0, new ListItem(\"-- 請選擇 --\", \"\"));\n        }\n    }\n\n    protected void btnSubmit_Click(object sender, EventArgs e)\n    {\n        // PostBack 後觸發：Page_Load 已執行過\n        string name = txtName.Text.Trim();\n        int catId = int.Parse(ddlCategory.SelectedValue);\n        lblResult.Text = $\"已送出：{name}，分類 ID：{catId}\";\n    }\n}",
+      "keyPoints": [
+        "Page 生命週期順序：PreInit → Init → Load → 控制項事件 → PreRender → Render",
+        "Page_Load 中用 if (!IsPostBack) 區分首次載入與回傳",
+        "Button_Click 等控制項事件在 Page_Load 之後才執行",
+        "AutoEventWireup=\"true\" 自動連接 Page_Load 等命名事件處理器",
+        "Response.Redirect 瀏覽器跳轉（URL 改變）；Server.Transfer 伺服器端轉換（URL 不變）"
+      ],
+      "exercises": [
+        {
+          "id": 1,
+          "type": "multiple-choice",
+          "question": "ASP.NET Web Forms 的 Page 生命週期中，以下事件的正確執行順序是？",
+          "options": [
+            "A. Init → Load → PreInit → PreRender → Render",
+            "B. PreInit → Init → Load → PreRender → Render",
+            "C. Load → Init → PreInit → Render → PreRender",
+            "D. Init → PreInit → Load → Render → PreRender"
+          ],
+          "answer": "B",
+          "explanation": "Page 生命週期標準順序：PreInit（最早，可設 MasterPage）→ Init（控制項初始化）→ Load（Page_Load，ViewState 已載入）→ 控制項事件 → PreRender（最後修改控制項）→ Render（輸出 HTML）。"
+        },
+        {
+          "id": 2,
+          "type": "multiple-choice",
+          "question": "關於 IsPostBack 屬性，以下何者正確？",
+          "options": [
+            "A. IsPostBack = true 代表頁面第一次被載入（GET 請求）",
+            "B. IsPostBack = false 代表表單被回傳（POST 請求）",
+            "C. IsPostBack = false 代表第一次 GET 請求，= true 代表表單 POST 回傳",
+            "D. 每次頁面載入 IsPostBack 都是 false"
+          ],
+          "answer": "C",
+          "explanation": "IsPostBack = false 是第一次載入（瀏覽器 GET）；IsPostBack = true 是表單回傳（按鈕點擊等 POST）。常用 if (!IsPostBack) 包住初始化邏輯，避免每次回傳都重新綁定資料。"
+        },
+        {
+          "id": 3,
+          "type": "coding",
+          "question": "請寫一個 Page_Load 事件處理器：首次載入時將 Label（lblWelcome）的文字設為「歡迎！請填寫表單」；回傳時不改變 Label 文字。",
+          "answer": "protected void Page_Load(object sender, EventArgs e)\n{\n    if (!IsPostBack)\n    {\n        lblWelcome.Text = \"歡迎！請填寫表單\";\n    }\n}",
+          "explanation": "if (!IsPostBack) 確保只在第一次 GET 請求時設定 Label，PostBack（按鈕點擊）時不覆蓋 Label 的值。若沒有 if (!IsPostBack)，每次按鈕點擊都會重設 Label。"
+        },
+        {
+          "id": 4,
+          "type": "coding",
+          "question": "請完成以下 Code-Behind 程式碼：點擊 btnLogin 按鈕後，若 txtUsername.Text 等於 \"admin\" 且 txtPassword.Text 等於 \"1234\"，則用 Response.Redirect 跳轉到 Admin.aspx；否則顯示 lblError 為 \"帳號或密碼錯誤\"。",
+          "answer": "protected void btnLogin_Click(object sender, EventArgs e)\n{\n    string username = txtUsername.Text.Trim();\n    string password = txtPassword.Text;\n\n    if (username == \"admin\" && password == \"1234\")\n    {\n        Response.Redirect(\"~/Admin.aspx\");\n    }\n    else\n    {\n        lblError.Text = \"帳號或密碼錯誤\";\n    }\n}",
+          "explanation": "Response.Redirect(\"~/Admin.aspx\") 中 ~ 代表應用程式根目錄。btnLogin_Click 在 Page_Load 之後執行，此時可安全存取 txtUsername.Text 等控制項值（ViewState 已恢復）。"
+        },
+        {
+          "id": 5,
+          "type": "coding",
+          "question": "請說明 Server.Transfer 與 Response.Redirect 的差異，並各寫出一行使用範例。",
+          "answer": "// Response.Redirect：瀏覽器收到 302 後重新發送 GET 請求\n// URL 列會改變，需兩次 HTTP 請求，可跨站\nResponse.Redirect(\"~/Login.aspx\");\n\n// Server.Transfer：在伺服器端直接轉換，瀏覽器不知道\n// URL 列不改變，只需一次請求，不可跨站\nServer.Transfer(\"~/Login.aspx\");\n\n// 差異整理：\n// Response.Redirect：URL 改變 | 瀏覽器重新請求 | 可跨域 | 效能較差\n// Server.Transfer  ：URL 不變 | 伺服器內部轉換 | 不可跨域 | 效能較好",
+          "explanation": "考試常考兩者差異：Redirect 是 302 跳轉（兩次請求，URL 改變）；Transfer 是伺服器端轉換（一次請求，URL 不變）。安全考量：Transfer 不暴露內部路徑給使用者。"
+        },
+        {
+          "id": 6,
+          "type": "debugging",
+          "question": "以下程式碼的問題是：每次按下 btnAdd 按鈕，DropDownList 都被重新綁定，導致使用者的選擇被重設。請修正：\n\n```csharp\nprotected void Page_Load(object sender, EventArgs e)\n{\n    ddlItems.DataSource = GetItems();\n    ddlItems.DataBind();\n}\n\nprotected void btnAdd_Click(object sender, EventArgs e)\n{\n    string selected = ddlItems.SelectedValue;\n    AddItem(selected);\n}\n```",
+          "buggyCode": "protected void Page_Load(object sender, EventArgs e)\n{\n    ddlItems.DataSource = GetItems();\n    ddlItems.DataBind();\n}\n\nprotected void btnAdd_Click(object sender, EventArgs e)\n{\n    string selected = ddlItems.SelectedValue;\n    AddItem(selected);\n}",
+          "answer": "protected void Page_Load(object sender, EventArgs e)\n{\n    if (!IsPostBack)\n    {\n        ddlItems.DataSource = GetItems();\n        ddlItems.DataBind();\n    }\n}\n\nprotected void btnAdd_Click(object sender, EventArgs e)\n{\n    string selected = ddlItems.SelectedValue;\n    AddItem(selected);\n}",
+          "explanation": "在 Page_Load 中直接 DataBind() 而未加 if (!IsPostBack)，每次 PostBack 都重新綁定 DropDownList，覆蓋 ViewState 中儲存的選擇，使 SelectedValue 永遠是第一項。加上 if (!IsPostBack) 後，PostBack 時 ViewState 自動恢復使用者的選擇。"
+        },
+        {
+          "id": 7,
+          "type": "debugging",
+          "question": "以下 .aspx 頁面的 DropDownList 無法在選項改變時立即觸發 SelectedIndexChanged 事件，請找出問題並修正：\n\n```aspx\n<asp:DropDownList ID=\"ddlCategory\" runat=\"server\"\n    OnSelectedIndexChanged=\"ddlCategory_SelectedIndexChanged\">\n</asp:DropDownList>\n```\n\n```csharp\nprotected void ddlCategory_SelectedIndexChanged(object sender, EventArgs e)\n{\n    LoadSubItems(ddlCategory.SelectedValue);\n}\n```",
+          "buggyCode": "<asp:DropDownList ID=\"ddlCategory\" runat=\"server\"\n    OnSelectedIndexChanged=\"ddlCategory_SelectedIndexChanged\">\n</asp:DropDownList>",
+          "answer": "<%-- 修正：加上 AutoPostBack=\"true\" --%>\n<asp:DropDownList ID=\"ddlCategory\" runat=\"server\"\n    AutoPostBack=\"true\"\n    OnSelectedIndexChanged=\"ddlCategory_SelectedIndexChanged\">\n</asp:DropDownList>",
+          "explanation": "DropDownList 的 SelectedIndexChanged 不會自動回傳頁面，必須設定 AutoPostBack=\"true\"，才會在選項改變時立即觸發 PostBack，進而執行 SelectedIndexChanged 事件處理器。未設定時，事件只會等到下次 PostBack（如按下按鈕）才觸發。"
+        }
+      ]
+    },
+    {
+      "id": "server-controls",
+      "title": "伺服器控制項（GridView / DetailsView / 驗證控制項）",
+      "content": "## GridView\n\nGridView 是最常用的資料呈現控制項，支援分頁、排序、編輯、刪除。\n\n```aspx\n<asp:GridView ID=\"gvOrders\" runat=\"server\"\n    AutoGenerateColumns=\"False\"\n    AllowPaging=\"True\" PageSize=\"10\"\n    AllowSorting=\"True\"\n    OnPageIndexChanging=\"gvOrders_PageIndexChanging\"\n    OnRowEditing=\"gvOrders_RowEditing\"\n    OnRowUpdating=\"gvOrders_RowUpdating\"\n    OnRowDeleting=\"gvOrders_RowDeleting\">\n  <Columns>\n    <asp:BoundField DataField=\"OrderId\"   HeaderText=\"訂單編號\" />\n    <asp:BoundField DataField=\"Amount\"    HeaderText=\"金額\"\n                    DataFormatString=\"{0:N0}\" />\n    <asp:CommandField ShowEditButton=\"True\" ShowDeleteButton=\"True\" />\n  </Columns>\n</asp:GridView>\n```\n\n**分頁事件**：\n```csharp\nprotected void gvOrders_PageIndexChanging(object sender, GridViewPageEventArgs e)\n{\n    gvOrders.PageIndex = e.NewPageIndex;\n    BindGrid();\n}\n```\n\n**取得選取列的值**：\n```csharp\nprotected void gvOrders_RowDeleting(object sender, GridViewDeleteEventArgs e)\n{\n    int orderId = (int)gvOrders.DataKeys[e.RowIndex].Value;\n    DeleteOrder(orderId);\n    BindGrid();\n}\n// 需設定 DataKeyNames=\"OrderId\" 在 GridView 上\n```\n\n## DetailsView\n\n用於顯示單筆記錄，可搭配 GridView 做主/從式（Master/Detail）介面。\n\n```aspx\n<asp:DetailsView ID=\"dvOrder\" runat=\"server\"\n    AutoGenerateRows=\"False\"\n    DefaultMode=\"Insert\">\n  <Fields>\n    <asp:BoundField DataField=\"CustomerName\" HeaderText=\"客戶\" />\n    <asp:CommandField ShowInsertButton=\"True\" />\n  </Fields>\n</asp:DetailsView>\n```\n\n## 驗證控制項\n\n| 控制項 | 用途 |\n|--------|------|\n| RequiredFieldValidator | 必填欄位 |\n| RangeValidator | 數值/日期範圍 |\n| RegularExpressionValidator | 正規表示式驗證 |\n| CompareValidator | 比較兩個欄位或固定值 |\n| CustomValidator | 自訂伺服器端/客戶端驗證 |\n| ValidationSummary | 顯示所有錯誤摘要 |\n\n```aspx\n<asp:TextBox ID=\"txtEmail\" runat=\"server\" />\n<asp:RequiredFieldValidator\n    ControlToValidate=\"txtEmail\"\n    ErrorMessage=\"Email 為必填\"\n    runat=\"server\" />\n<asp:RegularExpressionValidator\n    ControlToValidate=\"txtEmail\"\n    ValidationExpression=\"^[\\w.-]+@[\\w.-]+\\.[a-zA-Z]{2,}$\"\n    ErrorMessage=\"Email 格式不正確\"\n    runat=\"server\" />\n```\n\n**ValidationGroup**：將驗證控制項和 Button 分組，只觸發同組驗證。\n\n```aspx\n<asp:TextBox ID=\"txtSearch\" runat=\"server\" />\n<asp:RequiredFieldValidator ControlToValidate=\"txtSearch\"\n    ValidationGroup=\"SearchGroup\" ErrorMessage=\"請輸入搜尋關鍵字\" runat=\"server\" />\n<asp:Button Text=\"搜尋\" ValidationGroup=\"SearchGroup\" runat=\"server\" />\n```\n\n**繞過驗證**：`CausesValidation=\"False\"`\n```aspx\n<asp:Button Text=\"取消\" CausesValidation=\"False\" runat=\"server\" />\n```\n\n**伺服器端檢查**：\n```csharp\nprotected void btnSubmit_Click(object sender, EventArgs e)\n{\n    if (!Page.IsValid) return;  // 驗證未通過則不繼續\n    // 處理邏輯...\n}\n```",
+      "codeExample": "// GridView 完整綁定與分頁範例\npublic partial class OrderList : System.Web.UI.Page\n{\n    protected void Page_Load(object sender, EventArgs e)\n    {\n        if (!IsPostBack)\n            BindGrid();\n    }\n\n    private void BindGrid()\n    {\n        using (var db = new AppDbContext())\n        {\n            gvOrders.DataSource = db.Orders\n                .OrderByDescending(o => o.OrderDate)\n                .ToList();\n            gvOrders.DataBind();\n        }\n    }\n\n    protected void gvOrders_PageIndexChanging(object sender, GridViewPageEventArgs e)\n    {\n        gvOrders.PageIndex = e.NewPageIndex;\n        BindGrid();\n    }\n\n    protected void gvOrders_RowDeleting(object sender, GridViewDeleteEventArgs e)\n    {\n        int orderId = (int)gvOrders.DataKeys[e.RowIndex].Value;\n        using (var db = new AppDbContext())\n        {\n            var order = db.Orders.Find(orderId);\n            if (order != null) { db.Orders.Remove(order); db.SaveChanges(); }\n        }\n        BindGrid();\n    }\n}",
+      "keyPoints": [
+        "GridView 分頁需實作 PageIndexChanging，設定 gvOrders.PageIndex = e.NewPageIndex 後重新綁定",
+        "GridView 刪除用 DataKeys[e.RowIndex].Value 取主鍵（需設 DataKeyNames）",
+        "驗證控制項的 ControlToValidate 指向要驗證的控制項 ID",
+        "ValidationGroup 分組，讓同頁多個表單的驗證互不干擾",
+        "伺服器端必須加 if (!Page.IsValid) return; 防止繞過客戶端驗證直接送出"
+      ],
+      "exercises": [
+        {
+          "id": 1,
+          "type": "coding",
+          "question": "請寫出 GridView 的 .aspx 宣告，要求：(1) 關閉自動產生欄位；(2) 開啟分頁，每頁 10 筆；(3) 設定 DataKeyNames 為 ProductId；(4) 有 ProductName 和 Price 兩個 BoundField；(5) 有刪除按鈕欄（CommandField）。",
+          "answer": "<asp:GridView ID=\"gvProducts\" runat=\"server\"\n    AutoGenerateColumns=\"False\"\n    AllowPaging=\"True\" PageSize=\"10\"\n    DataKeyNames=\"ProductId\"\n    OnPageIndexChanging=\"gvProducts_PageIndexChanging\"\n    OnRowDeleting=\"gvProducts_RowDeleting\">\n  <Columns>\n    <asp:BoundField DataField=\"ProductId\"   HeaderText=\"編號\" />\n    <asp:BoundField DataField=\"ProductName\" HeaderText=\"商品名稱\" />\n    <asp:BoundField DataField=\"Price\"       HeaderText=\"價格\"\n                    DataFormatString=\"{0:N0}\" />\n    <asp:CommandField ShowDeleteButton=\"True\" HeaderText=\"操作\" />\n  </Columns>\n</asp:GridView>",
+          "explanation": "AutoGenerateColumns=\"False\" 必須關閉才能自訂欄位；DataKeyNames 讓主鍵隱式儲存，不需在畫面顯示但可在事件中用 DataKeys[e.RowIndex].Value 取值；AllowPaging 需搭配 OnPageIndexChanging 事件才能正常分頁。"
+        },
+        {
+          "id": 2,
+          "type": "coding",
+          "question": "請實作上題 GridView 的 PageIndexChanging 事件處理器，以及一個私有方法 BindGrid()，用 DataTable 模擬資料來源（直接 new DataTable 即可，不需真實資料庫連線）。",
+          "answer": "protected void Page_Load(object sender, EventArgs e)\n{\n    if (!IsPostBack)\n        BindGrid();\n}\n\nprivate void BindGrid()\n{\n    // 實際專案中從 DB 取得資料\n    gvProducts.DataSource = GetProducts();\n    gvProducts.DataBind();\n}\n\nprotected void gvProducts_PageIndexChanging(\n    object sender, GridViewPageEventArgs e)\n{\n    gvProducts.PageIndex = e.NewPageIndex;\n    BindGrid();  // 重新綁定資料，GridView 會自動顯示新頁\n}\n\nprivate DataTable GetProducts()\n{\n    var dt = new DataTable();\n    dt.Columns.Add(\"ProductId\",   typeof(int));\n    dt.Columns.Add(\"ProductName\", typeof(string));\n    dt.Columns.Add(\"Price\",       typeof(decimal));\n    for (int i = 1; i <= 30; i++)\n        dt.Rows.Add(i, $\"商品 {i}\", i * 100m);\n    return dt;\n}",
+          "explanation": "PageIndexChanging 的關鍵是：先更新 PageIndex，再重新綁定資料。若忘記重新綁定，GridView 不會更新頁面內容。分頁狀態由 GridView 自行管理，不需手動計算 OFFSET。"
+        },
+        {
+          "id": 3,
+          "type": "coding",
+          "question": "請為一個註冊表單加上三個驗證控制項：(1) txtUsername 必填；(2) txtEmail 格式驗證（用正規表示式 `\\S+@\\S+\\.\\S+`）；(3) txtAge 範圍驗證（18–100 整數）。全部屬於 ValidationGroup=\"RegisterGroup\"。",
+          "answer": "<%-- 姓名必填 --%>\n<asp:RequiredFieldValidator ID=\"rfvUsername\" runat=\"server\"\n    ControlToValidate=\"txtUsername\"\n    ValidationGroup=\"RegisterGroup\"\n    ErrorMessage=\"使用者名稱為必填\"\n    ForeColor=\"Red\" />\n\n<%-- Email 格式 --%>\n<asp:RegularExpressionValidator ID=\"revEmail\" runat=\"server\"\n    ControlToValidate=\"txtEmail\"\n    ValidationGroup=\"RegisterGroup\"\n    ValidationExpression=\"\\S+@\\S+\\.\\S+\"\n    ErrorMessage=\"Email 格式不正確\"\n    ForeColor=\"Red\" />\n\n<%-- 年齡範圍 --%>\n<asp:RangeValidator ID=\"rvAge\" runat=\"server\"\n    ControlToValidate=\"txtAge\"\n    ValidationGroup=\"RegisterGroup\"\n    MinimumValue=\"18\" MaximumValue=\"100\"\n    Type=\"Integer\"\n    ErrorMessage=\"年齡須介於 18 到 100 之間\"\n    ForeColor=\"Red\" />\n\n<%-- 送出按鈕 --%>\n<asp:Button ID=\"btnRegister\" runat=\"server\" Text=\"註冊\"\n    ValidationGroup=\"RegisterGroup\"\n    OnClick=\"btnRegister_Click\" />",
+          "explanation": "三個驗證控制項的關鍵屬性：ControlToValidate（指向要驗證的控制項）、ErrorMessage（錯誤訊息）、ValidationGroup（分組）。RangeValidator 必須指定 Type（Integer/Date/String 等），否則比較方式不正確。"
+        },
+        {
+          "id": 4,
+          "type": "coding",
+          "question": "請寫出 btnRegister_Click 的伺服器端處理邏輯，在正式處理前先檢查 Page.IsValid，若驗證未通過則直接 return。",
+          "answer": "protected void btnRegister_Click(object sender, EventArgs e)\n{\n    // 伺服器端再次驗證（防止使用者停用 JavaScript 繞過客戶端驗證）\n    if (!Page.IsValid)\n        return;\n\n    string username = txtUsername.Text.Trim();\n    string email    = txtEmail.Text.Trim();\n    int    age      = int.Parse(txtAge.Text);\n\n    // 處理註冊邏輯...\n    lblResult.Text = $\"註冊成功！歡迎 {username}\";\n}",
+          "explanation": "驗證控制項預設在客戶端（JavaScript）執行，使用者若停用 JS 可繞過。伺服器端加 if (!Page.IsValid) return; 是安全必要步驟，確保即使繞過客戶端驗證也不會執行後續邏輯。"
+        },
+        {
+          "id": 5,
+          "type": "coding",
+          "question": "GridView 的 RowDeleting 事件中，請寫出如何用 DataKeys 取得被刪除列的 ProductId，然後從假設的 ProductService 靜態方法 Delete(int id) 刪除，並重新綁定 GridView。",
+          "answer": "protected void gvProducts_RowDeleting(\n    object sender, GridViewDeleteEventArgs e)\n{\n    // 從 DataKeys 取得主鍵值（需設定 DataKeyNames=\"ProductId\"）\n    int productId = (int)gvProducts.DataKeys[e.RowIndex].Value;\n\n    ProductService.Delete(productId);\n\n    // 重新綁定（DataBind 後 PageIndex 不變）\n    BindGrid();\n}",
+          "explanation": "DataKeys[e.RowIndex].Value 取出主鍵，需事先在 GridView 設定 DataKeyNames=\"ProductId\"。不應使用 Cells[0].Text 取值，因為欄位順序可能改變，且主鍵欄位通常不顯示在畫面上。"
+        },
+        {
+          "id": 6,
+          "type": "debugging",
+          "question": "以下 GridView 開啟分頁後，點擊第 2 頁按鈕沒有效果（頁面仍顯示第 1 頁），請找出問題並修正：\n\n```aspx\n<asp:GridView ID=\"gvList\" runat=\"server\"\n    AllowPaging=\"True\" PageSize=\"5\" />\n```\n\n```csharp\nprotected void Page_Load(object sender, EventArgs e)\n{\n    BindGrid();\n}\n```",
+          "buggyCode": "// .aspx\n<asp:GridView ID=\"gvList\" runat=\"server\"\n    AllowPaging=\"True\" PageSize=\"5\" />\n\n// .cs\nprotected void Page_Load(object sender, EventArgs e)\n{\n    BindGrid();\n}",
+          "answer": "// .aspx：加上 OnPageIndexChanging 事件\n<asp:GridView ID=\"gvList\" runat=\"server\"\n    AllowPaging=\"True\" PageSize=\"5\"\n    OnPageIndexChanging=\"gvList_PageIndexChanging\" />\n\n// .cs：加上事件處理器，並改用 !IsPostBack\nprotected void Page_Load(object sender, EventArgs e)\n{\n    if (!IsPostBack)\n        BindGrid();\n}\n\nprotected void gvList_PageIndexChanging(\n    object sender, GridViewPageEventArgs e)\n{\n    gvList.PageIndex = e.NewPageIndex;\n    BindGrid();\n}",
+          "explanation": "兩個問題：(1) .aspx 沒有設定 OnPageIndexChanging，點頁碼沒有事件處理；(2) Page_Load 沒有 if (!IsPostBack)，每次 PostBack 重新綁定時 PageIndex 被 DataBind 重置回 0。兩個問題必須同時修正。"
+        },
+        {
+          "id": 7,
+          "type": "debugging",
+          "question": "以下驗證設定有誤，導致點擊「取消」按鈕時也觸發驗證，請修正：\n\n```aspx\n<asp:TextBox ID=\"txtName\" runat=\"server\" />\n<asp:RequiredFieldValidator ControlToValidate=\"txtName\"\n    ErrorMessage=\"必填\" runat=\"server\" />\n<asp:Button ID=\"btnSave\"   Text=\"儲存\" runat=\"server\" OnClick=\"btnSave_Click\" />\n<asp:Button ID=\"btnCancel\" Text=\"取消\" runat=\"server\" OnClick=\"btnCancel_Click\" />\n```",
+          "buggyCode": "<asp:TextBox ID=\"txtName\" runat=\"server\" />\n<asp:RequiredFieldValidator ControlToValidate=\"txtName\"\n    ErrorMessage=\"必填\" runat=\"server\" />\n<asp:Button ID=\"btnSave\"   Text=\"儲存\" runat=\"server\" OnClick=\"btnSave_Click\" />\n<asp:Button ID=\"btnCancel\" Text=\"取消\" runat=\"server\" OnClick=\"btnCancel_Click\" />",
+          "answer": "<asp:TextBox ID=\"txtName\" runat=\"server\" />\n<asp:RequiredFieldValidator ControlToValidate=\"txtName\"\n    ValidationGroup=\"SaveGroup\"\n    ErrorMessage=\"必填\" runat=\"server\" />\n<asp:Button ID=\"btnSave\"   Text=\"儲存\"\n    ValidationGroup=\"SaveGroup\"\n    runat=\"server\" OnClick=\"btnSave_Click\" />\n<asp:Button ID=\"btnCancel\" Text=\"取消\"\n    CausesValidation=\"False\"\n    runat=\"server\" OnClick=\"btnCancel_Click\" />",
+          "explanation": "預設所有 Button 都會觸發頁面上所有驗證控制項。解法有兩種：(1) 用 ValidationGroup 分組，只有同組的 Button 和 Validator 互相觸發；(2) 在取消按鈕設定 CausesValidation=\"False\" 完全跳過驗證。兩種方式可組合使用。"
+        }
+      ]
+    },
+    {
+      "id": "state-management",
+      "title": "狀態管理（ViewState / Session / Application / Cookie）",
+      "content": "HTTP 是無狀態協定，ASP.NET 提供多種機制在請求之間保存狀態。\n\n## 狀態管理比較表\n\n| 機制 | 儲存位置 | 範圍 | 存活時間 | 適用情境 |\n|------|----------|------|----------|----------|\n| ViewState | 頁面隱藏欄位 | 單一頁面 | 單次請求 | 控制項狀態 |\n| Session | 伺服器記憶體（或 DB）| 單一使用者 | 預設 20 分鐘 | 使用者登入狀態 |\n| Application | 伺服器記憶體 | 所有使用者 | 應用程式存活期 | 全域計數器、快取 |\n| Cookie | 客戶端瀏覽器 | 單一使用者 | 可設定過期時間 | 記住我、偏好設定 |\n| QueryString | URL | 單一請求 | 單次請求 | 傳遞非敏感參數 |\n\n## ViewState\n\n```csharp\n// 寫入\nViewState[\"counter\"] = 5;\n\n// 讀取（需型別轉換）\nint counter = (int)(ViewState[\"counter\"] ?? 0);\n```\n\n- 預設開啟，儲存在 `<input type=\"hidden\" name=\"__VIEWSTATE\" ...>`\n- 控制項值（如 TextBox.Text）由 ViewState 自動維護\n- 停用：`<%@ Page EnableViewState=\"False\" %>` 或控制項上 `EnableViewState=\"false\"`\n\n## Session\n\n```csharp\n// 寫入\nSession[\"UserId\"]   = 42;\nSession[\"UserName\"] = \"王小明\";\n\n// 讀取\nint userId = Session[\"UserId\"] != null\n    ? (int)Session[\"UserId\"] : 0;\n\n// 移除單一\nSession.Remove(\"UserId\");\n\n// 清除全部（登出時）\nSession.Abandon();\n```\n\n- 預設 InProc（存在 Web Server 記憶體）\n- 超時（Timeout）預設 20 分鐘，可在 Web.config 設定：\n  ```xml\n  <sessionState mode=\"InProc\" timeout=\"30\" />\n  ```\n\n## Application\n\n```csharp\n// Global.asax 中初始化\nvoid Application_Start(object sender, EventArgs e)\n{\n    Application[\"VisitorCount\"] = 0;\n}\n\n// 多執行緒安全寫法\nApplication.Lock();\nApplication[\"VisitorCount\"] = (int)Application[\"VisitorCount\"] + 1;\nApplication.UnLock();\n```\n\n## Cookie\n\n```csharp\n// 寫入 Cookie（有效期 7 天）\nvar cookie = new HttpCookie(\"UserPrefs\");\ncookie[\"Theme\"] = \"dark\";\ncookie.Expires = DateTime.Now.AddDays(7);\nResponse.Cookies.Add(cookie);\n\n// 讀取 Cookie\nHttpCookie prefs = Request.Cookies[\"UserPrefs\"];\nstring theme = prefs?[\"Theme\"] ?? \"light\";\n\n// 刪除 Cookie（設過去時間）\nvar del = new HttpCookie(\"UserPrefs\");\ndel.Expires = DateTime.Now.AddDays(-1);\nResponse.Cookies.Add(del);\n```\n\n## Session vs Cookie 安全考量\n\n- Session：敏感資料存伺服器端，較安全；但 InProc 模式 Web Farm 不支援\n- Cookie：存客戶端，可被竄改，**不應存放敏感資料**（如密碼、權限）\n- Session ID 本身存在 Cookie（ASP.NET_SessionId）",
+      "codeExample": "// 購物車用 Session 儲存（簡化版）\npublic partial class Cart : System.Web.UI.Page\n{\n    private List<CartItem> GetCart()\n    {\n        if (Session[\"Cart\"] == null)\n            Session[\"Cart\"] = new List<CartItem>();\n        return (List<CartItem>)Session[\"Cart\"];\n    }\n\n    protected void btnAdd_Click(object sender, EventArgs e)\n    {\n        var cart = GetCart();\n        cart.Add(new CartItem\n        {\n            ProductId = int.Parse(hdnProductId.Value),\n            Qty = 1\n        });\n        Session[\"Cart\"] = cart;  // 重新賦值確保 Session 更新\n        lblCount.Text = $\"購物車：{cart.Count} 件\";\n    }\n\n    protected void btnCheckout_Click(object sender, EventArgs e)\n    {\n        if (Session[\"Cart\"] == null || GetCart().Count == 0)\n        {\n            lblMsg.Text = \"購物車是空的\";\n            return;\n        }\n        Response.Redirect(\"~/Checkout.aspx\");\n    }\n}",
+      "keyPoints": [
+        "ViewState 儲存在頁面隱藏欄位，只在同頁面 PostBack 間有效",
+        "Session 儲存在伺服器，預設 20 分鐘逾時；Abandon() 清除全部",
+        "Application 全域共用，寫入前必須 Lock() / UnLock() 防止競爭",
+        "Cookie 存客戶端，不可放敏感資料；刪除 Cookie 需設過去時間",
+        "Session 讀取前必須判斷 null，避免 NullReferenceException"
+      ],
+      "exercises": [
+        {
+          "id": 1,
+          "type": "multiple-choice",
+          "question": "關於 ASP.NET 各種狀態管理機制，以下何者正確？",
+          "options": [
+            "A. Session 的資料存在客戶端瀏覽器，所有使用者共用",
+            "B. ViewState 可跨頁面保存狀態，存活至瀏覽器關閉",
+            "C. Application 物件的資料所有使用者共用，存活至應用程式重啟",
+            "D. Cookie 的資料儲存在伺服器記憶體，較 Session 安全"
+          ],
+          "answer": "C",
+          "explanation": "Application 物件存在伺服器記憶體中，所有使用者共用，應用程式重新啟動才會清除。A 錯（Session 存伺服器，每個使用者獨立）；B 錯（ViewState 只在同頁面 PostBack 間有效）；D 錯（Cookie 存客戶端，較不安全）。"
+        },
+        {
+          "id": 2,
+          "type": "multiple-choice",
+          "question": "使用者登入後，最適合用哪種機制儲存「使用者 ID」和「使用者名稱」？",
+          "options": [
+            "A. ViewState — 效能最好，不佔伺服器記憶體",
+            "B. Cookie — 持久化儲存，關閉瀏覽器後仍存在",
+            "C. Session — 存伺服器端，使用者各自獨立，較安全",
+            "D. Application — 所有使用者共用，存取最方便"
+          ],
+          "answer": "C",
+          "explanation": "登入狀態（UserId、UserName）應存 Session：伺服器端儲存、每個使用者獨立、不易竄改。A 錯（ViewState 只在單頁有效，換頁就消失）；B 可行但 Cookie 可被篡改，不適合存權限資訊；D 錯（Application 是全域共用，所有人共用同一份資料）。"
+        },
+        {
+          "id": 3,
+          "type": "coding",
+          "question": "請寫出登入成功後將 UserId（int）和 UserName（string）存入 Session 的程式碼，以及登出時清除所有 Session 並跳轉到首頁的程式碼。",
+          "answer": "// 登入成功後儲存 Session\nprotected void btnLogin_Click(object sender, EventArgs e)\n{\n    // 假設驗證通過\n    int userId = AuthService.Validate(\n        txtUsername.Text, txtPassword.Text);\n\n    if (userId > 0)\n    {\n        Session[\"UserId\"]   = userId;\n        Session[\"UserName\"] = txtUsername.Text.Trim();\n        Response.Redirect(\"~/Default.aspx\");\n    }\n    else\n    {\n        lblError.Text = \"帳號或密碼錯誤\";\n    }\n}\n\n// 登出：清除 Session 並跳轉\nprotected void btnLogout_Click(object sender, EventArgs e)\n{\n    Session.Abandon();\n    Response.Redirect(\"~/Login.aspx\");\n}",
+          "explanation": "Session[\"key\"] = value 寫入；Session.Abandon() 立即清除該使用者的所有 Session 資料並讓 Session 失效（比 Session.Clear() 更徹底，Clear 只清資料但 Session 仍存在）。"
+        },
+        {
+          "id": 4,
+          "type": "coding",
+          "question": "請寫一個頁面的 Page_Load，若 Session[\"UserId\"] 為 null（未登入），則 Redirect 到 Login.aspx；否則在 lblWelcome 顯示「歡迎回來，{UserName}」。",
+          "answer": "protected void Page_Load(object sender, EventArgs e)\n{\n    if (Session[\"UserId\"] == null)\n    {\n        Response.Redirect(\"~/Login.aspx\");\n        return;  // Redirect 後繼續執行，需加 return 終止\n    }\n\n    if (!IsPostBack)\n    {\n        string userName = Session[\"UserName\"]?.ToString() ?? \"使用者\";\n        lblWelcome.Text = $\"歡迎回來，{userName}\";\n    }\n}",
+          "explanation": "Response.Redirect() 發送 302 但不會立即停止後續程式碼執行（除非傳第二個參數 true，但會拋 ThreadAbortException）。加 return 是安全做法。Session 取值後建議用 null 條件運算子 ?. 防止 NullReferenceException。"
+        },
+        {
+          "id": 5,
+          "type": "coding",
+          "question": "請寫出在 Response 中寫入一個名為 \"Theme\" 的 Cookie，值為 \"dark\"，有效期 30 天；以及讀取這個 Cookie 值的程式碼（若 Cookie 不存在則預設 \"light\"）。",
+          "answer": "// 寫入 Cookie\nvar themeCookie = new HttpCookie(\"Theme\");\nthemeCookie.Value   = \"dark\";\nthemeCookie.Expires = DateTime.Now.AddDays(30);\nthemeCookie.HttpOnly = true;  // 防止 JavaScript 存取（安全建議）\nResponse.Cookies.Add(themeCookie);\n\n// 讀取 Cookie\nHttpCookie cookie = Request.Cookies[\"Theme\"];\nstring theme = cookie?.Value ?? \"light\";",
+          "explanation": "Cookie.Expires 不設定則為 Session Cookie（關閉瀏覽器即消失）。HttpOnly = true 防止 XSS 攻擊透過 JavaScript 讀取 Cookie。讀取前檢查 null（Cookie 可能不存在），用 ?. 或先 if (cookie != null) 判斷。"
+        },
+        {
+          "id": 6,
+          "type": "coding",
+          "question": "Global.asax 中，請實作一個網站訪客計數器：Application_Start 初始化 VisitorCount 為 0；Session_Start 時安全地將 VisitorCount +1（注意多執行緒）。",
+          "answer": "// Global.asax.cs\nvoid Application_Start(object sender, EventArgs e)\n{\n    Application[\"VisitorCount\"] = 0;\n}\n\nvoid Session_Start(object sender, EventArgs e)\n{\n    // 多執行緒下必須 Lock/UnLock\n    Application.Lock();\n    Application[\"VisitorCount\"] =\n        (int)Application[\"VisitorCount\"] + 1;\n    Application.UnLock();\n}\n\nvoid Session_End(object sender, EventArgs e)\n{\n    Application.Lock();\n    Application[\"VisitorCount\"] =\n        (int)Application[\"VisitorCount\"] - 1;\n    Application.UnLock();\n}",
+          "explanation": "Application 物件所有請求共用，讀改寫（Read-Modify-Write）不是原子操作，多個請求同時執行會造成競爭條件（Race Condition）。Application.Lock() 和 UnLock() 確保同一時間只有一個執行緒修改，是考試必考寫法。"
+        },
+        {
+          "id": 7,
+          "type": "debugging",
+          "question": "以下程式碼在讀取 Session 時偶爾拋出 NullReferenceException 或 InvalidCastException，請找出問題並修正：\n\n```csharp\nprotected void Page_Load(object sender, EventArgs e)\n{\n    int userId = (int)Session[\"UserId\"];\n    string cart = (string)Session[\"Cart\"];\n    lblInfo.Text = $\"ID: {userId}, 購物車: {cart}\";\n}\n```",
+          "buggyCode": "protected void Page_Load(object sender, EventArgs e)\n{\n    int userId = (int)Session[\"UserId\"];\n    string cart = (string)Session[\"Cart\"];\n    lblInfo.Text = $\"ID: {userId}, 購物車: {cart}\";\n}",
+          "answer": "protected void Page_Load(object sender, EventArgs e)\n{\n    // 方法一：null 檢查後轉型\n    if (Session[\"UserId\"] == null)\n    {\n        Response.Redirect(\"~/Login.aspx\");\n        return;\n    }\n\n    int userId = (int)Session[\"UserId\"];\n    string cart = Session[\"Cart\"]?.ToString() ?? \"（空）\";\n    lblInfo.Text = $\"ID: {userId}, 購物車: {cart}\";\n}\n\n// 方法二：用 as 轉型（參考型別）+ null 合併\n// string cart = Session[\"Cart\"] as string ?? \"（空）\";",
+          "explanation": "Session[\"key\"] 回傳 object，若 key 不存在回傳 null。直接 (int)null 拋 NullReferenceException；若 Session[\"UserId\"] 存的是 string，(int) 強轉拋 InvalidCastException。正確做法：先判 null 再轉型，或用 as + ?? 處理參考型別。"
+        }
+      ]
+    },
+    {
+      "id": "data-access",
+      "title": "資料存取（SqlConnection / SqlCommand / DataAdapter）",
+      "content": "ASP.NET Web Forms 常搭配 ADO.NET 存取 SQL Server，核心類別在 `System.Data.SqlClient` 命名空間。\n\n## 核心類別\n\n| 類別 | 用途 |\n|------|------|\n| SqlConnection | 開啟/關閉資料庫連線 |\n| SqlCommand | 執行 SQL 或 SP，帶參數 |\n| SqlDataReader | 逐列讀取結果集（唯讀、向前） |\n| SqlDataAdapter | 填入 DataSet/DataTable（離線模式）|\n| DataSet / DataTable | 記憶體中的資料表，可離線操作 |\n\n## 基本查詢（SqlDataReader）\n\n```csharp\nstring connStr = ConfigurationManager.ConnectionStrings[\"AppDb\"].ConnectionString;\n\nusing (var conn = new SqlConnection(connStr))\nusing (var cmd  = new SqlCommand(\n    \"SELECT EmpId, Name FROM Employees WHERE DeptId = @DeptId\", conn))\n{\n    cmd.Parameters.AddWithValue(\"@DeptId\", deptId);\n    conn.Open();\n    using (var reader = cmd.ExecuteReader())\n    {\n        while (reader.Read())\n        {\n            int    id   = reader.GetInt32(0);\n            string name = reader.GetString(1);\n            // 或 reader[\"Name\"].ToString()\n        }\n    }\n}  // using 自動 Close 連線\n```\n\n## ExecuteNonQuery（INSERT / UPDATE / DELETE）\n\n```csharp\nusing (var conn = new SqlConnection(connStr))\nusing (var cmd  = new SqlCommand(\n    \"UPDATE Employees SET Salary = @Salary WHERE EmpId = @Id\", conn))\n{\n    cmd.Parameters.AddWithValue(\"@Salary\", 75000m);\n    cmd.Parameters.AddWithValue(\"@Id\",     empId);\n    conn.Open();\n    int rows = cmd.ExecuteNonQuery();  // 回傳受影響列數\n}\n```\n\n## ExecuteScalar（單一值）\n\n```csharp\nusing (var cmd = new SqlCommand(\n    \"SELECT COUNT(*) FROM Orders WHERE CustomerId = @Id\", conn))\n{\n    cmd.Parameters.AddWithValue(\"@Id\", customerId);\n    conn.Open();\n    int count = (int)cmd.ExecuteScalar();\n}\n```\n\n## SqlDataAdapter + DataTable（離線模式）\n\n```csharp\nvar dt = new DataTable();\nusing (var conn    = new SqlConnection(connStr))\nusing (var adapter = new SqlDataAdapter(\n    \"SELECT * FROM Products\", conn))\n{\n    adapter.Fill(dt);  // 自動開關連線\n}\n// dt 可繫結到 GridView\ngvProducts.DataSource = dt;\ngvProducts.DataBind();\n```\n\n## 參數化查詢（防 SQL Injection）\n\n```csharp\n// ❌ 危險：字串拼接，SQL Injection 漏洞\nstring sql = \"SELECT * FROM Users WHERE Name = '\" + name + \"'\";\n\n// ✅ 安全：參數化查詢\nstring sql = \"SELECT * FROM Users WHERE Name = @Name\";\ncmd.Parameters.AddWithValue(\"@Name\", name);\n// 或精確指定型別：\ncmd.Parameters.Add(\"@Name\", SqlDbType.NVarChar, 50).Value = name;\n```\n\n## Web.config 連線字串\n\n```xml\n<connectionStrings>\n  <add name=\"AppDb\"\n       connectionString=\"Server=.;Database=MyDB;Integrated Security=True;\"\n       providerName=\"System.Data.SqlClient\" />\n</connectionStrings>\n```\n\n```csharp\nstring cs = ConfigurationManager\n    .ConnectionStrings[\"AppDb\"].ConnectionString;\n```",
+      "codeExample": "// 完整範例：GridView 綁定 + 新增功能\npublic partial class ProductPage : System.Web.UI.Page\n{\n    private readonly string _cs =\n        ConfigurationManager.ConnectionStrings[\"AppDb\"].ConnectionString;\n\n    protected void Page_Load(object sender, EventArgs e)\n    {\n        if (!IsPostBack) BindGrid();\n    }\n\n    private void BindGrid()\n    {\n        var dt = new DataTable();\n        using (var conn = new SqlConnection(_cs))\n        using (var da   = new SqlDataAdapter(\n            \"SELECT ProductId, ProductName, Price FROM Products\", conn))\n        {\n            da.Fill(dt);\n        }\n        gvProducts.DataSource = dt;\n        gvProducts.DataBind();\n    }\n\n    protected void btnAdd_Click(object sender, EventArgs e)\n    {\n        if (!Page.IsValid) return;\n\n        using (var conn = new SqlConnection(_cs))\n        using (var cmd  = new SqlCommand(\n            @\"INSERT INTO Products (ProductName, Price)\n              VALUES (@Name, @Price)\", conn))\n        {\n            cmd.Parameters.Add(\"@Name\",  SqlDbType.NVarChar, 100)\n                          .Value = txtName.Text.Trim();\n            cmd.Parameters.Add(\"@Price\", SqlDbType.Decimal)\n                          .Value = decimal.Parse(txtPrice.Text);\n            conn.Open();\n            cmd.ExecuteNonQuery();\n        }\n        BindGrid();\n    }\n}",
+      "keyPoints": [
+        "using 確保 SqlConnection / SqlCommand 用完自動 Dispose/Close",
+        "參數化查詢（AddWithValue 或 Add）是防止 SQL Injection 的唯一正確做法",
+        "ExecuteReader 逐列讀（大量資料）；ExecuteScalar 取單一值；ExecuteNonQuery 增刪改",
+        "SqlDataAdapter.Fill(dt) 自動開關連線，填入 DataTable 供 GridView 綁定",
+        "連線字串從 Web.config 的 ConnectionStrings 讀取，不寫死在程式碼"
+      ],
+      "exercises": [
+        {
+          "id": 1,
+          "type": "coding",
+          "question": "請用 SqlConnection 和 SqlDataReader 查詢 Products 資料表中所有 Price > @MinPrice 的商品，將 ProductName 加入 ListBox（lbProducts）。連線字串從 ConfigurationManager 讀取，鍵名為 \"AppDb\"。",
+          "answer": "string cs = ConfigurationManager\n    .ConnectionStrings[\"AppDb\"].ConnectionString;\n\nusing (var conn = new SqlConnection(cs))\nusing (var cmd  = new SqlCommand(\n    \"SELECT ProductId, ProductName FROM Products WHERE Price > @MinPrice\",\n    conn))\n{\n    cmd.Parameters.AddWithValue(\"@MinPrice\", 100m);\n    conn.Open();\n\n    using (var reader = cmd.ExecuteReader())\n    {\n        lbProducts.Items.Clear();\n        while (reader.Read())\n        {\n            lbProducts.Items.Add(new ListItem(\n                reader[\"ProductName\"].ToString(),\n                reader[\"ProductId\"].ToString()));\n        }\n    }\n}",
+          "explanation": "SqlDataReader.Read() 逐列移動，reader[\"ColumnName\"] 取值（回傳 object，需 ToString()）。using 確保連線在離開區塊時自動關閉，即使發生例外也不會洩漏連線。"
+        },
+        {
+          "id": 2,
+          "type": "coding",
+          "question": "請用 ExecuteNonQuery 新增一筆 Employee 記錄（Name、DeptId、Salary），使用參數化查詢，並回傳受影響的列數（顯示在 lblResult）。",
+          "answer": "string cs = ConfigurationManager\n    .ConnectionStrings[\"AppDb\"].ConnectionString;\n\nusing (var conn = new SqlConnection(cs))\nusing (var cmd  = new SqlCommand(\n    @\"INSERT INTO Employees (Name, DeptId, Salary)\n      VALUES (@Name, @DeptId, @Salary)\", conn))\n{\n    cmd.Parameters.Add(\"@Name\",   SqlDbType.NVarChar, 50)\n                  .Value = txtName.Text.Trim();\n    cmd.Parameters.Add(\"@DeptId\", SqlDbType.Int)\n                  .Value = int.Parse(ddlDept.SelectedValue);\n    cmd.Parameters.Add(\"@Salary\", SqlDbType.Decimal)\n                  .Value = decimal.Parse(txtSalary.Text);\n\n    conn.Open();\n    int affected = cmd.ExecuteNonQuery();\n    lblResult.Text = $\"已新增 {affected} 筆記錄\";\n}",
+          "explanation": "比起 AddWithValue，使用 Parameters.Add(name, SqlDbType, size) 更精確（指定長度防止隱式型別轉換影響查詢計畫）。ExecuteNonQuery 回傳受影響列數，INSERT 成功時通常為 1。"
+        },
+        {
+          "id": 3,
+          "type": "coding",
+          "question": "請用 ExecuteScalar 查詢 Orders 資料表中指定客戶（@CustomerId）的訂單總金額（SUM(Amount)），若該客戶無訂單則顯示 0。",
+          "answer": "string cs = ConfigurationManager\n    .ConnectionStrings[\"AppDb\"].ConnectionString;\n\nusing (var conn = new SqlConnection(cs))\nusing (var cmd  = new SqlCommand(\n    \"SELECT ISNULL(SUM(Amount), 0) FROM Orders WHERE CustomerId = @Id\",\n    conn))\n{\n    cmd.Parameters.AddWithValue(\"@Id\", customerId);\n    conn.Open();\n    decimal total = (decimal)cmd.ExecuteScalar();\n    lblTotal.Text = $\"總金額：{total:N0}\";\n}",
+          "explanation": "ExecuteScalar 回傳結果集第一列第一欄（object），需強型別轉換。SQL 中用 ISNULL(SUM(...), 0) 確保無資料時回傳 0 而非 DBNull，避免 C# 端 (decimal)DBNull.Value 拋例外。"
+        },
+        {
+          "id": 4,
+          "type": "coding",
+          "question": "請用 SqlDataAdapter 填入 DataTable，然後將其繫結到 GridView（gvEmployees）。查詢語句為「SELECT EmpId, Name, Salary FROM Employees ORDER BY Salary DESC」。",
+          "answer": "string cs = ConfigurationManager\n    .ConnectionStrings[\"AppDb\"].ConnectionString;\n\nvar dt = new DataTable();\nusing (var conn = new SqlConnection(cs))\nusing (var da   = new SqlDataAdapter(\n    \"SELECT EmpId, Name, Salary FROM Employees ORDER BY Salary DESC\",\n    conn))\n{\n    da.Fill(dt);  // Fill 會自動 Open 和 Close 連線\n}\n\ngvEmployees.DataSource = dt;\ngvEmployees.DataBind();",
+          "explanation": "SqlDataAdapter.Fill() 會自動管理連線開關（若連線未開啟則自動開啟，填完後若原本是關閉的會自動關閉）。DataTable 在記憶體中，可反覆給 GridView 使用，適合離線操作場景。"
+        },
+        {
+          "id": 5,
+          "type": "coding",
+          "question": "請呼叫一個名為 usp_GetEmployeesByDept 的預存程序，傳入 @DeptId 參數，並將結果填入 DataTable 後綁定到 gvResult。",
+          "answer": "string cs = ConfigurationManager\n    .ConnectionStrings[\"AppDb\"].ConnectionString;\n\nvar dt = new DataTable();\nusing (var conn = new SqlConnection(cs))\nusing (var cmd  = new SqlCommand(\"usp_GetEmployeesByDept\", conn))\n{\n    cmd.CommandType = CommandType.StoredProcedure;\n    cmd.Parameters.AddWithValue(\"@DeptId\",\n        int.Parse(ddlDept.SelectedValue));\n\n    using (var da = new SqlDataAdapter(cmd))\n    {\n        da.Fill(dt);\n    }\n}\n\ngvResult.DataSource = dt;\ngvResult.DataBind();",
+          "explanation": "呼叫 SP 的關鍵：cmd.CommandType = CommandType.StoredProcedure（預設是 CommandType.Text）。SqlCommand 的 CommandText 設為 SP 名稱，參數照常加入。SqlDataAdapter 可接受 SqlCommand 物件作為建構子參數。"
+        },
+        {
+          "id": 6,
+          "type": "debugging",
+          "question": "以下程式碼有 SQL Injection 漏洞，且連線字串寫死在程式碼中，請改寫為安全版本：\n\n```csharp\nprotected void btnSearch_Click(object sender, EventArgs e)\n{\n    string name = txtSearch.Text;\n    string sql  = \"SELECT * FROM Customers WHERE Name = '\" + name + \"'\";\n    var conn = new SqlConnection(\n        \"Server=.;Database=AppDB;Integrated Security=True;\");\n    var cmd = new SqlCommand(sql, conn);\n    conn.Open();\n    var reader = cmd.ExecuteReader();\n    gvResult.DataSource = reader;\n    gvResult.DataBind();\n    conn.Close();\n}\n```",
+          "buggyCode": "protected void btnSearch_Click(object sender, EventArgs e)\n{\n    string name = txtSearch.Text;\n    string sql  = \"SELECT * FROM Customers WHERE Name = '\" + name + \"'\";\n    var conn = new SqlConnection(\n        \"Server=.;Database=AppDB;Integrated Security=True;\");\n    var cmd = new SqlCommand(sql, conn);\n    conn.Open();\n    var reader = cmd.ExecuteReader();\n    gvResult.DataSource = reader;\n    gvResult.DataBind();\n    conn.Close();\n}",
+          "answer": "protected void btnSearch_Click(object sender, EventArgs e)\n{\n    string cs = ConfigurationManager\n        .ConnectionStrings[\"AppDb\"].ConnectionString;\n\n    var dt = new DataTable();\n    using (var conn = new SqlConnection(cs))\n    using (var cmd  = new SqlCommand(\n        \"SELECT * FROM Customers WHERE Name = @Name\", conn))\n    {\n        // 參數化查詢，防止 SQL Injection\n        cmd.Parameters.Add(\"@Name\", SqlDbType.NVarChar, 50)\n                      .Value = txtSearch.Text.Trim();\n\n        using (var da = new SqlDataAdapter(cmd))\n            da.Fill(dt);\n    }\n\n    gvResult.DataSource = dt;\n    gvResult.DataBind();\n}",
+          "explanation": "三個問題：(1) 字串拼接 SQL → 改參數化查詢；(2) 連線字串寫死 → 改從 Web.config 讀取；(3) 未用 using → 例外時連線洩漏。另外 DataReader 直接綁 GridView 後連線不能關，改用 DataTable 更安全。"
+        },
+        {
+          "id": 7,
+          "type": "debugging",
+          "question": "以下程式碼在查詢結果為空（無符合列）時，拋出 InvalidCastException，請找出原因並修正：\n\n```csharp\nprivate int GetOrderCount(int customerId)\n{\n    using (var conn = new SqlConnection(_cs))\n    using (var cmd  = new SqlCommand(\n        \"SELECT COUNT(*) FROM Orders WHERE CustomerId = @Id AND Status = 'X'\",\n        conn))\n    {\n        cmd.Parameters.AddWithValue(\"@Id\", customerId);\n        conn.Open();\n        return (int)cmd.ExecuteScalar();\n    }\n}\n```",
+          "buggyCode": "private int GetOrderCount(int customerId)\n{\n    using (var conn = new SqlConnection(_cs))\n    using (var cmd  = new SqlCommand(\n        \"SELECT COUNT(*) FROM Orders WHERE CustomerId = @Id AND Status = 'X'\",\n        conn))\n    {\n        cmd.Parameters.AddWithValue(\"@Id\", customerId);\n        conn.Open();\n        return (int)cmd.ExecuteScalar();\n    }\n}",
+          "answer": "private int GetOrderCount(int customerId)\n{\n    using (var conn = new SqlConnection(_cs))\n    using (var cmd  = new SqlCommand(\n        \"SELECT COUNT(*) FROM Orders WHERE CustomerId = @Id AND Status = 'X'\",\n        conn))\n    {\n        cmd.Parameters.AddWithValue(\"@Id\", customerId);\n        conn.Open();\n        object result = cmd.ExecuteScalar();\n        // ExecuteScalar 在結果集完全為空時回傳 null（非 COUNT 的情況）\n        // COUNT(*) 即使 0 筆也會回傳 0，所以此例其實安全\n        // 但若 SELECT 是其他欄位且無結果，才會回傳 null\n        return result == null || result == DBNull.Value\n            ? 0\n            : (int)result;\n    }\n}",
+          "explanation": "COUNT(*) 在無資料時回傳 0 而非 null，所以此題實際上不會拋例外（但寫法是好習慣）。真正危險是 SELECT MAX(col) 等彙總在無資料時回傳 DBNull：(int)DBNull.Value 拋 InvalidCastException。防禦性寫法：先判 null 和 DBNull.Value，再轉型。"
+        }
+      ]
+    },
+    {
+      "id": "masterpage-theme",
+      "title": "MasterPage 與使用者控制項",
+      "content": "## MasterPage（主版頁面）\n\nMasterPage 提供一致的頁面外框（Header、Footer、導覽列），各 Content Page 只需填入主要內容區。\n\n### 建立 MasterPage（Site.master）\n\n```aspx\n<%@ Master Language=\"C#\" CodeBehind=\"Site.master.cs\"\n           Inherits=\"MyApp.Site\" %>\n<!DOCTYPE html>\n<html>\n<head runat=\"server\">\n  <title>網站標題</title>\n  <asp:ContentPlaceHolder ID=\"head\" runat=\"server\" />\n</head>\n<body>\n  <header><!-- 共用導覽列 --></header>\n  <main>\n    <asp:ContentPlaceHolder ID=\"MainContent\" runat=\"server\" />\n  </main>\n  <footer><!-- 共用頁尾 --></footer>\n</body>\n</html>\n```\n\n### Content Page 使用 MasterPage\n\n```aspx\n<%@ Page Language=\"C#\" MasterPageFile=\"~/Site.master\"\n         CodeBehind=\"About.aspx.cs\" Inherits=\"MyApp.About\" %>\n\n<asp:Content ContentPlaceHolderID=\"head\" runat=\"server\">\n  <title>關於我們</title>\n</asp:Content>\n\n<asp:Content ContentPlaceHolderID=\"MainContent\" runat=\"server\">\n  <h1>關於我們</h1>\n  <p>頁面內容...</p>\n</asp:Content>\n```\n\n### Content Page 存取 MasterPage 控制項\n\n```csharp\n// 從 Content Page 存取 Master 中的 Label\nLabel lblTitle = (Label)Master.FindControl(\"lblSiteTitle\");\nif (lblTitle != null) lblTitle.Text = \"自訂標題\";\n\n// 或強型別存取（需在 Content Page 加 MasterType 指令）\n// <%@ MasterType VirtualPath=\"~/Site.master\" %>\n// Master.SetPageTitle(\"關於我們\");  // 呼叫 Master 的 public 方法\n```\n\n## 使用者控制項（User Control）\n\n副檔名 `.ascx`，可重複使用的控制項片段。\n\n```aspx\n<%-- NavMenu.ascx --%>\n<%@ Control Language=\"C#\" CodeBehind=\"NavMenu.ascx.cs\"\n            Inherits=\"MyApp.NavMenu\" %>\n<nav>\n  <a href=\"~/Default.aspx\" runat=\"server\">首頁</a>\n  <a href=\"~/About.aspx\"   runat=\"server\">關於</a>\n</nav>\n```\n\n```aspx\n<%-- 在頁面中使用 --%>\n<%@ Register Src=\"~/Controls/NavMenu.ascx\"\n             TagName=\"NavMenu\" TagPrefix=\"uc\" %>\n<uc:NavMenu ID=\"ucNav\" runat=\"server\" />\n```\n\n## ContentPlaceHolder vs Content\n\n| 標籤 | 位置 | 用途 |\n|------|------|------|\n| ContentPlaceHolder | MasterPage | 定義可被覆寫的區域 |\n| Content | Content Page | 填入對應區域的內容 |\n\n## 動態切換 MasterPage\n\n必須在 **PreInit** 事件中切換（最早能設定的時機）：\n\n```csharp\nprotected void Page_PreInit(object sender, EventArgs e)\n{\n    if (Session[\"Theme\"]?.ToString() == \"mobile\")\n        MasterPageFile = \"~/Mobile.master\";\n}\n```",
+      "codeExample": "// Site.master.cs — 提供 public 方法讓 Content Page 設定頁面標題\npublic partial class Site : System.Web.UI.MasterPage\n{\n    public string PageTitle\n    {\n        get => lblPageTitle.Text;\n        set => lblPageTitle.Text = value;\n    }\n\n    protected void Page_Load(object sender, EventArgs e)\n    {\n        // 顯示登入使用者姓名\n        if (Session[\"UserName\"] != null)\n            lblUser.Text = $\"歡迎，{Session[\"UserName\"]}\";\n        else\n            lblUser.Text = \"訪客\";\n    }\n}\n\n// About.aspx.cs — 使用強型別 MasterType\n// <%@ MasterType VirtualPath=\"~/Site.master\" %>\npublic partial class About : System.Web.UI.Page\n{\n    protected void Page_Load(object sender, EventArgs e)\n    {\n        Master.PageTitle = \"關於我們\";  // 強型別，不需 FindControl\n    }\n}",
+      "keyPoints": [
+        "ContentPlaceHolder 定義在 Master；Content 填入在 Content Page",
+        "Content Page 用 MasterPageFile 屬性指定主版頁面路徑",
+        "動態切換 MasterPage 必須在 PreInit 事件（生命週期最早）",
+        "FindControl(\"id\") 可從 Master 找控制項；加 MasterType 指令可強型別存取",
+        "User Control（.ascx）需用 Register 指令註冊後才能在頁面使用"
+      ],
+      "exercises": [
+        {
+          "id": 1,
+          "type": "coding",
+          "question": "請寫出一個簡單的 MasterPage（Site.master）骨架：包含 html/head/body，head 區有名為 \"HeadContent\" 的 ContentPlaceHolder，body 中有導覽列文字「我的網站」和名為 \"MainContent\" 的 ContentPlaceHolder。",
+          "answer": "<%@ Master Language=\"C#\" CodeBehind=\"Site.master.cs\"\n           Inherits=\"WebApp.Site\" %>\n<!DOCTYPE html>\n<html lang=\"zh-TW\">\n<head runat=\"server\">\n  <meta charset=\"UTF-8\" />\n  <title>我的網站</title>\n  <asp:ContentPlaceHolder ID=\"HeadContent\" runat=\"server\" />\n</head>\n<body>\n  <nav>\n    <a href=\"~/Default.aspx\" runat=\"server\">我的網站</a>\n  </nav>\n  <main>\n    <asp:ContentPlaceHolder ID=\"MainContent\" runat=\"server\" />\n  </main>\n</body>\n</html>",
+          "explanation": "MasterPage 指令是 <%@ Master %>（非 <%@ Page %>）。ContentPlaceHolder 放在 Master 中當佔位符，Content Page 用 <asp:Content ContentPlaceHolderID=\"MainContent\"> 填入內容。head 必須加 runat=\"server\" 才能由伺服器控制。"
+        },
+        {
+          "id": 2,
+          "type": "coding",
+          "question": "請寫出對應上題 MasterPage 的 Content Page（About.aspx），在 HeadContent 區放額外的 CSS 連結，在 MainContent 區放一個 h1 標題「關於我們」和一個 Label（lblMessage）。",
+          "answer": "<%@ Page Language=\"C#\" MasterPageFile=\"~/Site.master\"\n         CodeBehind=\"About.aspx.cs\" Inherits=\"WebApp.About\"\n         AutoEventWireup=\"true\" %>\n\n<asp:Content ContentPlaceHolderID=\"HeadContent\" runat=\"server\">\n  <link rel=\"stylesheet\" href=\"css/about.css\" />\n</asp:Content>\n\n<asp:Content ContentPlaceHolderID=\"MainContent\" runat=\"server\">\n  <h1>關於我們</h1>\n  <asp:Label ID=\"lblMessage\" runat=\"server\" Text=\"\" />\n</asp:Content>",
+          "explanation": "Content Page 只能包含 <asp:Content> 標籤（不能有 <html>/<body>），每個 Content 對應一個 ContentPlaceHolderID。MasterPageFile 路徑用 ~ 代表應用程式根目錄。"
+        },
+        {
+          "id": 3,
+          "type": "coding",
+          "question": "請在 Content Page 的 Code-Behind 中，用 FindControl 從 MasterPage 取得 ID 為 \"lblSiteTitle\" 的 Label，並將其文字設為 \"關於我們 - 我的網站\"。",
+          "answer": "protected void Page_Load(object sender, EventArgs e)\n{\n    // 用 FindControl 從 Master 取得控制項\n    Label lblSiteTitle = Master.FindControl(\"lblSiteTitle\") as Label;\n    if (lblSiteTitle != null)\n    {\n        lblSiteTitle.Text = \"關於我們 - 我的網站\";\n    }\n}",
+          "explanation": "Master.FindControl(\"id\") 搜尋 MasterPage 的直接子控制項，回傳 Control（需轉型）。若控制項在巢狀容器中可能需要遞迴找。加 null 判斷防止找不到時拋 NullReferenceException。"
+        },
+        {
+          "id": 4,
+          "type": "multiple-choice",
+          "question": "在 ASP.NET Web Forms 中，動態切換 MasterPage 應在哪個事件中進行？",
+          "options": [
+            "A. Page_Load",
+            "B. Page_Init",
+            "C. Page_PreInit",
+            "D. Page_PreRender"
+          ],
+          "answer": "C",
+          "explanation": "MasterPage 必須在 PreInit 事件中設定，這是生命週期中最早能設定 MasterPageFile 的時機。在 Init 或 Load 中設定會拋出例外，因為此時控制項樹已建立完畢，不能再更換 Master。"
+        },
+        {
+          "id": 5,
+          "type": "debugging",
+          "question": "以下 Content Page 宣告有誤，導致執行時報錯，請找出並修正：\n\n```aspx\n<%@ Page Language=\"C#\" MasterPageFile=\"~/Site.master\" %>\n<html>\n<body>\n  <asp:Content ContentPlaceHolderID=\"MainContent\" runat=\"server\">\n    <h1>首頁</h1>\n  </asp:Content>\n</body>\n</html>\n```",
+          "buggyCode": "<%@ Page Language=\"C#\" MasterPageFile=\"~/Site.master\" %>\n<html>\n<body>\n  <asp:Content ContentPlaceHolderID=\"MainContent\" runat=\"server\">\n    <h1>首頁</h1>\n  </asp:Content>\n</body>\n</html>",
+          "answer": "<%@ Page Language=\"C#\" MasterPageFile=\"~/Site.master\"\n         AutoEventWireup=\"true\" CodeBehind=\"Default.aspx.cs\"\n         Inherits=\"WebApp.Default\" %>\n\n<%-- Content Page 不能有 <html>/<body> 標籤，只能有 <asp:Content> --%>\n<asp:Content ContentPlaceHolderID=\"MainContent\" runat=\"server\">\n  <h1>首頁</h1>\n</asp:Content>",
+          "explanation": "Content Page 使用 MasterPage 時，.aspx 檔案內不能有 <html>、<head>、<body> 等標籤（這些由 MasterPage 提供）。只能包含 <asp:Content> 標籤。有多餘的 HTML 結構會造成解析錯誤。"
+        },
+        {
+          "id": 6,
+          "type": "multiple-choice",
+          "question": "User Control（.ascx）在頁面使用前，必須在 .aspx 頁面最上方加入什麼指令？",
+          "options": [
+            "A. <%@ Import Namespace=\"Controls\" %>",
+            "B. <%@ Register Src=\"~/Controls/MyCtrl.ascx\" TagName=\"MyCtrl\" TagPrefix=\"uc\" %>",
+            "C. <%@ Reference Control=\"~/Controls/MyCtrl.ascx\" %>",
+            "D. <%@ Assembly Name=\"MyCtrl\" %>"
+          ],
+          "answer": "B",
+          "explanation": "使用 User Control 需要 <%@ Register %> 指令，指定 Src（.ascx 路徑）、TagName（自訂標籤名）、TagPrefix（命名空間前綴）。之後才能用 <uc:MyCtrl ID=\"uc1\" runat=\"server\" /> 的方式在頁面中使用。"
+        }
+      ]
+    },
+    {
+      "id": "security",
+      "title": "安全性（Forms Authentication / SQL Injection / XSS）",
+      "content": "## Forms Authentication（表單驗證）\n\n```xml\n<!-- Web.config 設定 -->\n<system.web>\n  <authentication mode=\"Forms\">\n    <forms loginUrl=\"~/Login.aspx\" timeout=\"30\"\n           name=\".ASPXAUTH\" />\n  </authentication>\n  <authorization>\n    <deny users=\"?\" />  <!-- 拒絕匿名使用者 -->\n  </authorization>\n</system.web>\n```\n\n```csharp\n// 登入成功後建立驗證 Cookie\nFormsAuthentication.SetAuthCookie(username, isPersistent: false);\nResponse.Redirect(FormsAuthentication.GetRedirectUrl(username, false));\n\n// 登出\nFormsAuthentication.SignOut();\nSession.Abandon();\nResponse.Redirect(\"~/Login.aspx\");\n\n// 取得目前登入使用者\nstring user = User.Identity.Name;\nbool isAuth = User.Identity.IsAuthenticated;\n```\n\n## 角色授權\n\n```xml\n<location path=\"Admin\">\n  <system.web>\n    <authorization>\n      <allow roles=\"Admin\" />\n      <deny users=\"*\" />\n    </authorization>\n  </system.web>\n</location>\n```\n\n```csharp\nif (User.IsInRole(\"Admin\"))\n    btnDelete.Visible = true;\n```\n\n## SQL Injection 防護\n\n```csharp\n// ❌ 危險\nstring sql = \"SELECT * FROM Users WHERE Name='\" + txtName.Text + \"'\";\n\n// ✅ 安全：參數化查詢\ncmd.Parameters.AddWithValue(\"@Name\", txtName.Text);\n\n// ✅ 安全：預存程序\ncmd.CommandType = CommandType.StoredProcedure;\n```\n\n## XSS（跨站指令碼）防護\n\n```csharp\n// ❌ 危險：直接輸出使用者輸入\nlblOutput.Text = txtComment.Text;\n\n// ✅ 安全：HTML 編碼\nlblOutput.Text = Server.HtmlEncode(txtComment.Text);\n// 或\nlblOutput.Text = HttpUtility.HtmlEncode(txtComment.Text);\n```\n\n- ASP.NET 的 **ValidateRequest**（預設 true）會自動拒絕含 HTML 標籤的表單輸入\n- Response.Write 直接輸出不會自動編碼，需手動 HtmlEncode\n\n## CSRF 防護\n\n- ASP.NET Web Forms 的 ViewState 本身含有 MAC 驗證，提供一定程度的 CSRF 防護\n- 可加 `ViewStateUserKey` 強化：\n\n```csharp\nvoid Page_Init(object sender, EventArgs e)\n{\n    ViewStateUserKey = Session.SessionID;\n}\n```\n\n## 密碼雜湊（不可逆）\n\n```csharp\nusing System.Security.Cryptography;\n\n// 產生 Salt + Hash（SHA-256，實務建議用 BCrypt）\nbyte[] salt = RandomNumberGenerator.GetBytes(16);\nbyte[] hash = SHA256.HashData(\n    Encoding.UTF8.GetBytes(password + Convert.ToBase64String(salt)));\n```",
+      "codeExample": "// Login.aspx.cs — Forms Authentication 完整登入流程\nprotected void btnLogin_Click(object sender, EventArgs e)\n{\n    if (!Page.IsValid) return;\n\n    string username = txtUsername.Text.Trim();\n    string password = txtPassword.Text;\n\n    // 查詢資料庫驗證（參數化，防 SQL Injection）\n    bool valid = UserService.Validate(username, password);\n\n    if (valid)\n    {\n        // 建立 Forms Auth Cookie\n        FormsAuthentication.SetAuthCookie(\n            username, chkRemember.Checked);\n\n        // 跳轉到原本想存取的頁面（或預設頁）\n        string redirect = FormsAuthentication\n            .GetRedirectUrl(username, chkRemember.Checked);\n        Response.Redirect(redirect);\n    }\n    else\n    {\n        lblError.Text = \"帳號或密碼錯誤\";\n        // 安全：不告知是哪個錯誤\n    }\n}",
+      "keyPoints": [
+        "Forms Authentication：Web.config 設 mode=\"Forms\"，登入後 SetAuthCookie，登出 SignOut()",
+        "User.Identity.Name 取目前登入使用者名稱；User.IsInRole() 檢查角色",
+        "SQL Injection：絕不字串拼接 SQL，一律使用參數化查詢或 SP",
+        "XSS：輸出使用者輸入前必須 Server.HtmlEncode()，Response.Write 不自動編碼",
+        "ValidateRequest 預設開啟，自動封鎖含 HTML 的表單輸入"
+      ],
+      "exercises": [
+        {
+          "id": 1,
+          "type": "coding",
+          "question": "請寫出 Web.config 中啟用 Forms Authentication 的設定：loginUrl 為 ~/Login.aspx，timeout 30 分鐘，並拒絕所有匿名使用者。",
+          "answer": "<configuration>\n  <system.web>\n    <authentication mode=\"Forms\">\n      <forms loginUrl=\"~/Login.aspx\"\n             timeout=\"30\"\n             name=\".ASPXAUTH\"\n             slidingExpiration=\"true\" />\n    </authentication>\n    <authorization>\n      <deny users=\"?\" />  <!-- ? 代表匿名使用者 -->\n    </authorization>\n  </system.web>\n</configuration>",
+          "explanation": "authentication mode=\"Forms\" 啟用表單驗證；loginUrl 設定未登入時重新導向的頁面；authorization 的 deny users=\"?\" 拒絕匿名使用者（? = 匿名，* = 所有使用者）。slidingExpiration=\"true\" 讓活躍使用者的 Cookie 自動延長。"
+        },
+        {
+          "id": 2,
+          "type": "coding",
+          "question": "請完成登出功能：清除 Forms Authentication Cookie、清除 Session、然後跳轉到 Login.aspx。",
+          "answer": "protected void btnLogout_Click(object sender, EventArgs e)\n{\n    // 清除 Forms Auth Cookie\n    FormsAuthentication.SignOut();\n\n    // 清除 Session\n    Session.Abandon();\n\n    // 跳轉到登入頁\n    Response.Redirect(\"~/Login.aspx\");\n}",
+          "explanation": "登出需同時做兩件事：(1) FormsAuthentication.SignOut() 清除驗證 Cookie；(2) Session.Abandon() 清除伺服器端 Session 資料。只做其中一個可能造成狀態不一致（Cookie 清了但 Session 還在，或反之）。"
+        },
+        {
+          "id": 3,
+          "type": "coding",
+          "question": "請在 Page_Load 中取得目前登入使用者名稱，顯示在 lblUser；若未登入（User.Identity.IsAuthenticated 為 false）則 Redirect 到 Login.aspx。",
+          "answer": "protected void Page_Load(object sender, EventArgs e)\n{\n    if (!User.Identity.IsAuthenticated)\n    {\n        Response.Redirect(\"~/Login.aspx\");\n        return;\n    }\n\n    if (!IsPostBack)\n    {\n        lblUser.Text = $\"歡迎，{User.Identity.Name}\";\n    }\n}",
+          "explanation": "User.Identity.IsAuthenticated 判斷是否已通過 Forms Authentication 驗證；User.Identity.Name 取得登入時 SetAuthCookie 的使用者名稱。這是比直接檢查 Session 更正式的驗證方式。"
+        },
+        {
+          "id": 4,
+          "type": "debugging",
+          "question": "以下程式碼有 XSS 漏洞，使用者可輸入 `<script>alert('XSS')</script>` 來執行任意 JavaScript，請修正：\n\n```csharp\nprotected void btnPost_Click(object sender, EventArgs e)\n{\n    string comment = txtComment.Text;\n    lblDisplay.Text = comment;\n    // 也直接輸出到頁面\n    Response.Write(\"<div>\" + comment + \"</div>\");\n}\n```",
+          "buggyCode": "protected void btnPost_Click(object sender, EventArgs e)\n{\n    string comment = txtComment.Text;\n    lblDisplay.Text = comment;\n    Response.Write(\"<div>\" + comment + \"</div>\");\n}",
+          "answer": "protected void btnPost_Click(object sender, EventArgs e)\n{\n    // HtmlEncode 將 < > & \" 轉換為 HTML 實體，阻止 XSS\n    string comment = Server.HtmlEncode(txtComment.Text);\n\n    lblDisplay.Text = comment;  // Label.Text 設定純文字是安全的\n    // 注意：若用 lblDisplay.Text = txtComment.Text（未編碼）也不安全\n\n    // Response.Write 不會自動編碼，一定要手動處理\n    Response.Write(\"<div>\" +\n        HttpUtility.HtmlEncode(txtComment.Text) + \"</div>\");\n}",
+          "explanation": "XSS 防護：所有輸出到 HTML 的使用者輸入都必須 HtmlEncode。Server.HtmlEncode() 和 HttpUtility.HtmlEncode() 效果相同，將 <、>、&、\" 轉為 HTML 實體（&lt;、&gt; 等）。ASP.NET 的 Label、TextBox 等控制項設定 Text 屬性時會自動編碼，但 Response.Write 不會。"
+        },
+        {
+          "id": 5,
+          "type": "multiple-choice",
+          "question": "以下關於 ASP.NET Forms Authentication 的描述，何者正確？",
+          "options": [
+            "A. FormsAuthentication.SetAuthCookie 會將使用者密碼加密存入 Cookie",
+            "B. 設定 deny users=\"?\" 表示拒絕所有使用者（包括已登入者）",
+            "C. FormsAuthentication.SignOut() 會清除驗證 Cookie，但不影響 Session",
+            "D. User.Identity.Name 回傳目前登入使用者的密碼"
+          ],
+          "answer": "C",
+          "explanation": "FormsAuthentication.SignOut() 只清除驗證 Cookie（.ASPXAUTH），不會清除 Session。登出時應同時呼叫 Session.Abandon()。A 錯（Cookie 存的是加密的使用者名稱 Ticket，不是密碼）；B 錯（? 代表匿名使用者，* 才是全部）；D 錯（Name 回傳使用者名稱）。"
+        },
+        {
+          "id": 6,
+          "type": "multiple-choice",
+          "question": "下列哪個做法能有效防止 SQL Injection？",
+          "options": [
+            "A. 將使用者輸入中的單引號替換成兩個單引號",
+            "B. 限制輸入欄位的最大長度",
+            "C. 使用參數化查詢（Parameters.AddWithValue）",
+            "D. 在 Web.config 中設定 ValidateRequest=\"true\""
+          ],
+          "answer": "C",
+          "explanation": "參數化查詢是防止 SQL Injection 的唯一可靠方法：參數值不會被解析為 SQL 指令，即使含有惡意字元也無效。A 不可靠（有其他繞過方式）；B 只是減少攻擊面，不能根本防止；D ValidateRequest 防的是 XSS（HTML 標籤），不防 SQL Injection。"
+        }
+      ]
+    }
+  ]
+}
