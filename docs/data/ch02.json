@@ -1,0 +1,802 @@
+{
+  "chapter": 2,
+  "id": "ch02",
+  "title": "MS SQL Server",
+  "priority": "第二優先",
+  "examWeight": "手寫 T-SQL，含設計題、SP、CTE、視窗函數",
+  "color": "#2980b9",
+  "sections": [
+    {
+      "id": "cte",
+      "title": "CTE（通用資料表運算式）",
+      "content": "CTE（Common Table Expression，通用資料表運算式）是 SQL Server 中用 WITH 關鍵字定義的暫時命名結果集，只在單一查詢範圍內有效。\n\n## 基本語法\n\n```sql\nWITH cte_name (col1, col2, ...) AS (\n    SELECT ...\n)\nSELECT * FROM cte_name;\n```\n\n## 優點\n- 提高可讀性，避免巢狀子查詢\n- 可在同一 SELECT/INSERT/UPDATE/DELETE 中多次參照\n- 支援遞迴查詢（Recursive CTE）\n\n## 遞迴 CTE\n\n遞迴 CTE 由兩部分組成：\n1. **錨點成員（Anchor Member）**：初始資料，不含 UNION ALL 遞迴\n2. **遞迴成員（Recursive Member）**：參照 CTE 自身，不斷展開直到結果集為空\n\n```sql\nWITH cte (Id, ParentId, Name, Level) AS (\n    -- Anchor\n    SELECT Id, ParentId, Name, 0\n    FROM Category WHERE ParentId IS NULL\n    UNION ALL\n    -- Recursive\n    SELECT c.Id, c.ParentId, c.Name, r.Level + 1\n    FROM Category c\n    INNER JOIN cte r ON c.ParentId = r.Id\n)\nSELECT * FROM cte ORDER BY Level, Id;\n```\n\n## 多個 CTE\n\n```sql\nWITH\n  cte1 AS (SELECT ...),\n  cte2 AS (SELECT ... FROM cte1)\nSELECT * FROM cte2;\n```\n\n## CTE 用於 UPDATE/DELETE\n\n```sql\nWITH Duplicates AS (\n    SELECT Id,\n           ROW_NUMBER() OVER (PARTITION BY Email ORDER BY Id) AS rn\n    FROM Members\n)\nDELETE FROM Duplicates WHERE rn > 1;\n```\n\n## 注意事項\n- CTE 不是物件，執行後即消失（≠ 暫存資料表）\n- 遞迴 CTE 預設最大遞迴次數 100（可用 OPTION(MAXRECURSION n) 調整）\n- CTE 不支援 ORDER BY（除非有 TOP/OFFSET-FETCH）",
+      "codeExample": "-- 範例：用遞迴 CTE 展開員工組織層級\nWITH OrgChart (EmpId, Name, ManagerId, Level, Path) AS (\n    -- Anchor：最高主管（無上級）\n    SELECT EmpId, Name, ManagerId, 0, CAST(Name AS NVARCHAR(500))\n    FROM Employees\n    WHERE ManagerId IS NULL\n\n    UNION ALL\n\n    -- Recursive：找下屬\n    SELECT e.EmpId, e.Name, e.ManagerId, o.Level + 1,\n           CAST(o.Path + N' > ' + e.Name AS NVARCHAR(500))\n    FROM Employees e\n    INNER JOIN OrgChart o ON e.ManagerId = o.EmpId\n)\nSELECT\n    REPLICATE('  ', Level) + Name AS [組織樹],\n    Level,\n    Path\nFROM OrgChart\nORDER BY Path\nOPTION (MAXRECURSION 50);",
+      "keyPoints": [
+        "WITH cte_name AS (...) SELECT ... — 基本語法",
+        "遞迴 CTE = Anchor UNION ALL Recursive，展開階層/路徑",
+        "OPTION(MAXRECURSION n) 調整最大遞迴次數（預設 100）",
+        "可用 CTE 搭配 DELETE/UPDATE 刪除重複資料",
+        "多個 CTE 用逗號分隔，後面的可參照前面的"
+      ],
+      "exercises": [
+        {
+          "id": 1,
+          "type": "coding",
+          "question": "資料表 Employees(EmpId INT, Name NVARCHAR(50), ManagerId INT)。請用非遞迴 CTE 先找出所有 ManagerId 不為 NULL 的員工（即非最高主管），再從中查詢 EmpId 和 Name。",
+          "answer": "WITH NonTopEmployees AS (\n    SELECT EmpId, Name, ManagerId\n    FROM Employees\n    WHERE ManagerId IS NOT NULL\n)\nSELECT EmpId, Name\nFROM NonTopEmployees;",
+          "explanation": "非遞迴 CTE 就是普通的 WITH 子句，定義一個暫時結果集再查詢。考試常考基本語法。"
+        },
+        {
+          "id": 2,
+          "type": "coding",
+          "question": "資料表 Category(Id INT, Name NVARCHAR(50), ParentId INT)，ParentId 為 NULL 表示根節點。請寫遞迴 CTE 列出所有節點及其層級（根節點 Level=0）。",
+          "answer": "WITH CategoryTree (Id, Name, ParentId, Level) AS (\n    -- Anchor: 根節點\n    SELECT Id, Name, ParentId, 0\n    FROM Category\n    WHERE ParentId IS NULL\n\n    UNION ALL\n\n    -- Recursive: 子節點\n    SELECT c.Id, c.Name, c.ParentId, ct.Level + 1\n    FROM Category c\n    INNER JOIN CategoryTree ct ON c.ParentId = ct.Id\n)\nSELECT Id, Name, Level\nFROM CategoryTree\nORDER BY Level, Id;",
+          "explanation": "遞迴 CTE 標準結構：Anchor（WHERE ParentId IS NULL）UNION ALL Recursive（JOIN CTE）。Level 每層 +1。"
+        },
+        {
+          "id": 3,
+          "type": "coding",
+          "question": "資料表 Members(Id INT, Email NVARCHAR(100))，Email 有重複資料。請用 CTE 搭配 ROW_NUMBER() 刪除同一 Email 中 Id 較大的重複列（保留最小 Id）。",
+          "answer": "WITH Duplicates AS (\n    SELECT Id,\n           ROW_NUMBER() OVER (PARTITION BY Email ORDER BY Id ASC) AS rn\n    FROM Members\n)\nDELETE FROM Duplicates\nWHERE rn > 1;",
+          "explanation": "ROW_NUMBER() OVER (PARTITION BY Email ORDER BY Id ASC) 讓每組 Email 的最小 Id 排名第 1，rn > 1 就是重複列。CTE 可直接用於 DELETE。"
+        },
+        {
+          "id": 4,
+          "type": "coding",
+          "question": "請寫一個遞迴 CTE，產生 1 到 10 的數字序列（不使用 master..spt_values 或其他輔助表）。",
+          "answer": "WITH Numbers (n) AS (\n    SELECT 1\n    UNION ALL\n    SELECT n + 1\n    FROM Numbers\n    WHERE n < 10\n)\nSELECT n FROM Numbers;",
+          "explanation": "遞迴 CTE 產生數列：Anchor = SELECT 1，Recursive = n + 1，終止條件 WHERE n < 10。這是面試/考試常見技巧。"
+        },
+        {
+          "id": 5,
+          "type": "coding",
+          "question": "資料表 Orders(OrderId INT, CustomerId INT, Amount DECIMAL(10,2))。請用兩個 CTE：第一個 CTE 計算每位客戶的總消費金額；第二個 CTE 從第一個找出總消費 > 10000 的客戶。最後查詢第二個 CTE 的所有資料。",
+          "answer": "WITH\n  CustomerTotals AS (\n      SELECT CustomerId, SUM(Amount) AS TotalAmount\n      FROM Orders\n      GROUP BY CustomerId\n  ),\n  HighValueCustomers AS (\n      SELECT CustomerId, TotalAmount\n      FROM CustomerTotals\n      WHERE TotalAmount > 10000\n  )\nSELECT CustomerId, TotalAmount\nFROM HighValueCustomers\nORDER BY TotalAmount DESC;",
+          "explanation": "多個 CTE 以逗號分隔，後面的 CTE 可以直接參照前面已定義的 CTE，讓查詢邏輯分層清晰。"
+        },
+        {
+          "id": 6,
+          "type": "coding",
+          "question": "資料表 Employees(EmpId INT, Name NVARCHAR(50), ManagerId INT, Salary DECIMAL(10,2))。請用遞迴 CTE 找出指定員工（EmpId = 5）的所有下屬（含多層），列出 EmpId 和 Name。",
+          "answer": "WITH Subordinates (EmpId, Name, ManagerId) AS (\n    -- Anchor: 直接下屬\n    SELECT EmpId, Name, ManagerId\n    FROM Employees\n    WHERE ManagerId = 5\n\n    UNION ALL\n\n    -- Recursive: 下屬的下屬\n    SELECT e.EmpId, e.Name, e.ManagerId\n    FROM Employees e\n    INNER JOIN Subordinates s ON e.ManagerId = s.EmpId\n)\nSELECT EmpId, Name\nFROM Subordinates;",
+          "explanation": "找指定節點的所有後代：Anchor 先找直接下屬（ManagerId = 5），Recursive 再往下展開。不包含本人（EmpId = 5）。"
+        },
+        {
+          "id": 7,
+          "type": "debugging",
+          "question": "以下 CTE 查詢有錯，請找出並修正：\n\n```sql\nWITH TopSales AS (\n    SELECT TOP 5 SalesPersonId, SUM(Amount) AS Total\n    FROM Sales\n    GROUP BY SalesPersonId\n    ORDER BY Total DESC\n)\nSELECT SalesPersonId, Total FROM TopSales;\n```",
+          "buggyCode": "WITH TopSales AS (\n    SELECT TOP 5 SalesPersonId, SUM(Amount) AS Total\n    FROM Sales\n    GROUP BY SalesPersonId\n    ORDER BY Total DESC\n)\nSELECT SalesPersonId, Total FROM TopSales;",
+          "answer": "WITH TopSales AS (\n    SELECT TOP 5 SalesPersonId, SUM(Amount) AS Total\n    FROM Sales\n    GROUP BY SalesPersonId\n    ORDER BY Total DESC\n)\nSELECT SalesPersonId, Total\nFROM TopSales\nORDER BY Total DESC;",
+          "explanation": "CTE 本身語法無誤（有 TOP 時 ORDER BY 合法）。原本外層查詢沒有指定排序，結果順序不保證。應在外層 SELECT 加 ORDER BY Total DESC 確保結果有序。（有些版本此 CTE 寫法也可以，但考試考點是外層應排序。）"
+        },
+        {
+          "id": 8,
+          "type": "debugging",
+          "question": "以下遞迴 CTE 查詢造成無限遞迴錯誤，請找出問題並修正：\n\n```sql\nWITH Numbers (n) AS (\n    SELECT 1\n    UNION ALL\n    SELECT n + 1\n    FROM Numbers\n)\nSELECT n FROM Numbers;\n```",
+          "buggyCode": "WITH Numbers (n) AS (\n    SELECT 1\n    UNION ALL\n    SELECT n + 1\n    FROM Numbers\n)\nSELECT n FROM Numbers;",
+          "answer": "WITH Numbers (n) AS (\n    SELECT 1\n    UNION ALL\n    SELECT n + 1\n    FROM Numbers\n    WHERE n < 100\n)\nSELECT n FROM Numbers;",
+          "explanation": "遞迴 CTE 沒有終止條件（WHERE 子句）就會無限展開，SQL Server 預設超過 100 次遞迴後會拋出錯誤。加上 WHERE n < 100 即可產生 1~100 數列。"
+        },
+        {
+          "id": 9,
+          "type": "multiple-choice",
+          "question": "關於 CTE（WITH ... AS），以下何者正確？",
+          "options": [
+            "A. CTE 會永久存在於資料庫，下一個連線仍可使用",
+            "B. CTE 只在定義它的單一 SQL 陳述式中有效",
+            "C. CTE 不支援遞迴查詢",
+            "D. CTE 定義後不可用於 DELETE 或 UPDATE"
+          ],
+          "answer": "B",
+          "explanation": "CTE 是暫時命名結果集，只在緊接其後的一個 SQL 陳述式（SELECT/INSERT/UPDATE/DELETE）中有效，執行後即消失。A 錯（它不是永久物件）；C 錯（支援遞迴）；D 錯（可用於 DELETE/UPDATE）。"
+        },
+        {
+          "id": 10,
+          "type": "multiple-choice",
+          "question": "遞迴 CTE 中，OPTION (MAXRECURSION 0) 的意義是什麼？",
+          "options": [
+            "A. 最多遞迴 0 次，即只執行 Anchor 成員",
+            "B. 無限制遞迴次數（可能造成無限迴圈）",
+            "C. 使用預設遞迴限制（100 次）",
+            "D. 停用遞迴功能，等同非遞迴 CTE"
+          ],
+          "answer": "B",
+          "explanation": "MAXRECURSION 0 表示無限制，SQL Server 不會因超過次數而中止，可能造成無限遞迴。預設值是 MAXRECURSION 100（超過 100 次報錯）。考試會考這個數值。"
+        }
+      ]
+    },
+    {
+      "id": "window-functions",
+      "title": "視窗函數（ROW_NUMBER / RANK / LAG / LEAD）",
+      "content": "視窗函數（Window Functions）在不改變資料列數的前提下，對一組相關列執行計算，結果附加在每一列上。關鍵語法是 OVER 子句。\n\n## 語法結構\n\n```sql\n函數名稱() OVER (\n    [PARTITION BY 分組欄位]\n    [ORDER BY 排序欄位]\n    [ROWS/RANGE BETWEEN ... AND ...]\n)\n```\n\n## 排名函數\n\n| 函數 | 說明 | 遇到並列 |\n|------|------|----------|\n| ROW_NUMBER() | 連續不重複序號 | 任意決定順序 |\n| RANK() | 並列同名次，下一名跳號 | 1,1,3,4 |\n| DENSE_RANK() | 並列同名次，下一名不跳號 | 1,1,2,3 |\n| NTILE(n) | 分成 n 等分桶 | — |\n\n## 彙總視窗函數\n\n```sql\n-- 累計加總\nSUM(Amount) OVER (PARTITION BY CustomerId ORDER BY OrderDate\n                  ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)\n\n-- 移動平均（前後各 1 列共 3 列）\nAVG(Amount) OVER (ORDER BY OrderDate\n                  ROWS BETWEEN 1 PRECEDING AND 1 FOLLOWING)\n```\n\n## LAG / LEAD（存取前後列）\n\n```sql\nLAG(col, offset, default)  OVER (ORDER BY ...)\nLEAD(col, offset, default) OVER (ORDER BY ...)\n```\n\n- LAG：存取**前 N 列**的值（預設 offset=1）\n- LEAD：存取**後 N 列**的值\n- default：當前後無資料時的預設值\n\n## FIRST_VALUE / LAST_VALUE\n\n```sql\nFIRST_VALUE(Salary) OVER (PARTITION BY DeptId ORDER BY Salary DESC)\n```\n\n## 常見考試題型\n- 找每部門薪資第 1 名（ROW_NUMBER + PARTITION BY）\n- 找每組前 N 筆（ROW_NUMBER 搭配外層 WHERE rn <= N）\n- 計算成長率（LAG 取上期值）\n- 刪除重複列（ROW_NUMBER PARTITION BY key ORDER BY id）",
+      "codeExample": "-- 找每個部門薪資前 2 名\nWITH Ranked AS (\n    SELECT\n        EmpId, Name, DeptId, Salary,\n        ROW_NUMBER() OVER (\n            PARTITION BY DeptId\n            ORDER BY Salary DESC\n        ) AS rn\n    FROM Employees\n)\nSELECT EmpId, Name, DeptId, Salary\nFROM Ranked\nWHERE rn <= 2\nORDER BY DeptId, Salary DESC;\n\n-- 計算每月銷售額與上月差異\nSELECT\n    SaleMonth,\n    TotalAmount,\n    LAG(TotalAmount, 1, 0) OVER (ORDER BY SaleMonth) AS PrevMonth,\n    TotalAmount - LAG(TotalAmount, 1, 0) OVER (ORDER BY SaleMonth) AS Diff\nFROM MonthlySales;",
+      "keyPoints": [
+        "ROW_NUMBER() 連續不重複；RANK() 跳號；DENSE_RANK() 不跳號",
+        "PARTITION BY 分組，ORDER BY 決定排名/計算順序",
+        "找每組 Top N：先 ROW_NUMBER() OVER (PARTITION BY ... ORDER BY ...) 再 WHERE rn <= N",
+        "LAG 取前列值，LEAD 取後列值，常用於計算環比成長率",
+        "彙總視窗函數（SUM/AVG OVER）不需要 GROUP BY，保留原始列數"
+      ],
+      "exercises": [
+        {
+          "id": 1,
+          "type": "coding",
+          "question": "資料表 Employees(EmpId INT, Name NVARCHAR(50), DeptId INT, Salary DECIMAL(10,2))。請用視窗函數列出每位員工在其所屬部門的薪資排名（並列時允許跳號），結果包含 EmpId、Name、DeptId、Salary、DeptRank。",
+          "answer": "SELECT\n    EmpId,\n    Name,\n    DeptId,\n    Salary,\n    RANK() OVER (\n        PARTITION BY DeptId\n        ORDER BY Salary DESC\n    ) AS DeptRank\nFROM Employees\nORDER BY DeptId, DeptRank;",
+          "explanation": "RANK() OVER (PARTITION BY DeptId ORDER BY Salary DESC) 對每個部門獨立排名，並列時名次相同但後面的名次跳號（如 1,1,3）。"
+        },
+        {
+          "id": 2,
+          "type": "coding",
+          "question": "承上題，請改用 ROW_NUMBER() 找出每個部門薪資最高的員工（每部門只取 1 筆），以 CTE 包裝後用 WHERE 篩選。",
+          "answer": "WITH RankedEmp AS (\n    SELECT\n        EmpId, Name, DeptId, Salary,\n        ROW_NUMBER() OVER (\n            PARTITION BY DeptId\n            ORDER BY Salary DESC\n        ) AS rn\n    FROM Employees\n)\nSELECT EmpId, Name, DeptId, Salary\nFROM RankedEmp\nWHERE rn = 1\nORDER BY DeptId;",
+          "explanation": "ROW_NUMBER() 在每組內給出唯一序號，WHERE rn = 1 取每組第一名。若有並列高薪，ROW_NUMBER 任意取其中一筆（想保留並列請用 RANK/DENSE_RANK）。"
+        },
+        {
+          "id": 3,
+          "type": "coding",
+          "question": "資料表 Orders(OrderId INT, CustomerId INT, OrderDate DATE, Amount DECIMAL(10,2))。請查詢每筆訂單及該客戶的累計消費金額（按 OrderDate 升冪累加），結果包含 OrderId、CustomerId、OrderDate、Amount、RunningTotal。",
+          "answer": "SELECT\n    OrderId,\n    CustomerId,\n    OrderDate,\n    Amount,\n    SUM(Amount) OVER (\n        PARTITION BY CustomerId\n        ORDER BY OrderDate\n        ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW\n    ) AS RunningTotal\nFROM Orders\nORDER BY CustomerId, OrderDate;",
+          "explanation": "SUM OVER (PARTITION BY ... ORDER BY ... ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) 是累計加總的標準寫法。ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW 表示從分組第一列到目前列。"
+        },
+        {
+          "id": 4,
+          "type": "coding",
+          "question": "資料表 MonthlySales(SaleYearMonth CHAR(7), TotalAmount DECIMAL(12,2))，格式如 '2025-01'。請用 LAG 函數計算每月與上月的銷售差異（Diff = 本月 - 上月），若為第一個月則差異顯示 NULL。",
+          "answer": "SELECT\n    SaleYearMonth,\n    TotalAmount,\n    LAG(TotalAmount) OVER (ORDER BY SaleYearMonth) AS PrevAmount,\n    TotalAmount - LAG(TotalAmount) OVER (ORDER BY SaleYearMonth) AS Diff\nFROM MonthlySales\nORDER BY SaleYearMonth;",
+          "explanation": "LAG(TotalAmount) OVER (ORDER BY SaleYearMonth) 取上一列的 TotalAmount。第一列沒有上一列，LAG 回傳 NULL，相減也是 NULL，符合題意。"
+        },
+        {
+          "id": 5,
+          "type": "coding",
+          "question": "資料表 Students(StudentId INT, Name NVARCHAR(50), Score INT)。請用 DENSE_RANK() 列出所有學生的分數排名，並列時名次相同且後面名次不跳號。同時列出 ROW_NUMBER() 作為流水號對照。",
+          "answer": "SELECT\n    ROW_NUMBER() OVER (ORDER BY Score DESC) AS RowNum,\n    DENSE_RANK()  OVER (ORDER BY Score DESC) AS DenseRank,\n    StudentId,\n    Name,\n    Score\nFROM Students\nORDER BY Score DESC;",
+          "explanation": "DENSE_RANK() 並列時不跳號（如 1,1,2,3），而 RANK() 並列後跳號（1,1,3,4）。ROW_NUMBER() 永遠連續不重複（1,2,3,4）。考試常考三者的差異。"
+        },
+        {
+          "id": 6,
+          "type": "coding",
+          "question": "資料表 Employees(EmpId INT, Name NVARCHAR(50), DeptId INT, HireDate DATE)。請用 LEAD 函數查詢每位員工（依照 HireDate 排序）的「下一位進公司的員工姓名」，若已是最後進公司的人則顯示 '無'。",
+          "answer": "SELECT\n    EmpId,\n    Name,\n    HireDate,\n    LEAD(Name, 1, N'無') OVER (ORDER BY HireDate) AS NextHiredName\nFROM Employees\nORDER BY HireDate;",
+          "explanation": "LEAD(Name, 1, '無') 取下一列的 Name，第三個參數是預設值（當沒有下一列時回傳）。LEAD/LAG 的第三參數要記得，否則末尾/開頭會是 NULL。"
+        },
+        {
+          "id": 7,
+          "type": "debugging",
+          "question": "以下查詢想找每個部門薪資前 3 名，但執行時報錯或結果不正確，請找出並修正：\n\n```sql\nSELECT EmpId, Name, DeptId, Salary\nFROM Employees\nWHERE ROW_NUMBER() OVER (PARTITION BY DeptId ORDER BY Salary DESC) <= 3;\n```",
+          "buggyCode": "SELECT EmpId, Name, DeptId, Salary\nFROM Employees\nWHERE ROW_NUMBER() OVER (PARTITION BY DeptId ORDER BY Salary DESC) <= 3;",
+          "answer": "WITH RankedEmp AS (\n    SELECT\n        EmpId, Name, DeptId, Salary,\n        ROW_NUMBER() OVER (\n            PARTITION BY DeptId\n            ORDER BY Salary DESC\n        ) AS rn\n    FROM Employees\n)\nSELECT EmpId, Name, DeptId, Salary\nFROM RankedEmp\nWHERE rn <= 3\nORDER BY DeptId, Salary DESC;",
+          "explanation": "視窗函數不能直接放在 WHERE 子句中使用（WHERE 的執行順序早於 SELECT，視窗函數尚未計算）。必須先用子查詢或 CTE 計算出 rn，再在外層用 WHERE rn <= 3 篩選。"
+        },
+        {
+          "id": 8,
+          "type": "debugging",
+          "question": "以下查詢想計算每位員工的累計薪資，但結果是所有員工薪資總和（非累計），請找出問題並修正：\n\n```sql\nSELECT\n    EmpId, Name, Salary,\n    SUM(Salary) OVER (ORDER BY EmpId) AS RunningTotal\nFROM Employees;\n```",
+          "buggyCode": "SELECT\n    EmpId, Name, Salary,\n    SUM(Salary) OVER (ORDER BY EmpId) AS RunningTotal\nFROM Employees;",
+          "answer": "SELECT\n    EmpId, Name, Salary,\n    SUM(Salary) OVER (\n        ORDER BY EmpId\n        ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW\n    ) AS RunningTotal\nFROM Employees;",
+          "explanation": "SUM OVER (ORDER BY ...) 在 SQL Server 中預設框架（frame）是 RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW，此模式下若有相同 EmpId 排序值，會把並列列全部加入。而不指定 ROWS 時，有些情況會匯總全部。明確加上 ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW 才能確保逐列累計。"
+        },
+        {
+          "id": 9,
+          "type": "multiple-choice",
+          "question": "以下哪個視窗函數在遇到並列值時，名次相同且後續名次「不跳號」？",
+          "options": [
+            "A. ROW_NUMBER()",
+            "B. RANK()",
+            "C. DENSE_RANK()",
+            "D. NTILE()"
+          ],
+          "answer": "C",
+          "explanation": "DENSE_RANK() 並列時後續不跳號（如分數 90,90,80 → 1,1,2）；RANK() 並列後跳號（1,1,3）；ROW_NUMBER() 永不重複；NTILE(n) 分桶，不排名。"
+        },
+        {
+          "id": 10,
+          "type": "multiple-choice",
+          "question": "LAG(col, 2, 0) OVER (ORDER BY col2) 的意義是？",
+          "options": [
+            "A. 取目前列之後第 2 列的 col 值，若無則回傳 0",
+            "B. 取目前列之前第 2 列的 col 值，若無則回傳 0",
+            "C. 取目前列之前第 2 列的 col 值，若無則回傳 NULL",
+            "D. 跳過 2 列後取下一列的 col 值"
+          ],
+          "answer": "B",
+          "explanation": "LAG(col, offset, default)：offset=2 表示往前看 2 列，default=0 表示若前面沒有資料（如前 2 列不存在）則回傳 0。LEAD 才是往後看。"
+        }
+      ]
+    },
+    {
+      "id": "joins",
+      "title": "JOIN 類型（INNER / LEFT / FULL / SELF / CROSS）",
+      "content": "JOIN 是 SQL 最核心的操作之一，用來合併兩張以上的資料表。考試必考各種 JOIN 的差異與實際應用。\n\n## JOIN 類型比較\n\n| JOIN 類型 | 說明 | 無匹配時 |\n|-----------|------|----------|\n| INNER JOIN | 兩側都有符合條件的列才回傳 | 該列不出現 |\n| LEFT JOIN | 左側全回傳，右側無匹配補 NULL | 右側欄位 NULL |\n| RIGHT JOIN | 右側全回傳，左側無匹配補 NULL | 左側欄位 NULL |\n| FULL OUTER JOIN | 兩側都全回傳，無匹配補 NULL | 對側欄位 NULL |\n| CROSS JOIN | 笛卡兒積，每列與對側每列配對 | — |\n| SELF JOIN | 自己 JOIN 自己，需要別名 | — |\n\n## INNER JOIN\n\n```sql\nSELECT e.Name, d.DeptName\nFROM Employees e\nINNER JOIN Departments d ON e.DeptId = d.DeptId;\n```\n\n## LEFT JOIN（找出「無匹配」列的常見技巧）\n\n```sql\n-- 找出沒有訂單的客戶\nSELECT c.CustomerId, c.Name\nFROM Customers c\nLEFT JOIN Orders o ON c.CustomerId = o.CustomerId\nWHERE o.OrderId IS NULL;\n```\n\n## FULL OUTER JOIN\n\n```sql\n-- 找出只在 A 或只在 B 的列（差集聯集）\nSELECT a.Id AS AId, b.Id AS BId\nFROM TableA a\nFULL OUTER JOIN TableB b ON a.Id = b.Id\nWHERE a.Id IS NULL OR b.Id IS NULL;\n```\n\n## SELF JOIN（自我關聯）\n\n```sql\n-- 找每位員工及其主管姓名\nSELECT e.Name AS Employee, m.Name AS Manager\nFROM Employees e\nLEFT JOIN Employees m ON e.ManagerId = m.EmpId;\n```\n\n## CROSS JOIN\n\n```sql\n-- 產生所有尺寸與顏色的組合\nSELECT s.Size, c.Color\nFROM Sizes s\nCROSS JOIN Colors c;\n```\n\n## 多表 JOIN\n\n```sql\nSELECT o.OrderId, c.Name, p.ProductName\nFROM Orders o\nINNER JOIN Customers c ON o.CustomerId = c.CustomerId\nINNER JOIN OrderDetails od ON o.OrderId = od.OrderId\nINNER JOIN Products p ON od.ProductId = p.ProductId;\n```\n\n## 考試重點\n- LEFT JOIN + WHERE 右側 IS NULL → 差集（只在左側）\n- SELF JOIN 必須使用別名，用於找主管/階層/同輩比較\n- ON 子句 vs WHERE 子句：LEFT JOIN 時過濾條件放 ON 與放 WHERE 結果不同",
+      "codeExample": "-- 找出有訂單的客戶姓名與訂單數（INNER JOIN + GROUP BY）\nSELECT c.CustomerId, c.Name, COUNT(o.OrderId) AS OrderCount\nFROM Customers c\nINNER JOIN Orders o ON c.CustomerId = o.CustomerId\nGROUP BY c.CustomerId, c.Name\nORDER BY OrderCount DESC;\n\n-- 找出從未下單的客戶（LEFT JOIN + IS NULL）\nSELECT c.CustomerId, c.Name\nFROM Customers c\nLEFT JOIN Orders o ON c.CustomerId = o.CustomerId\nWHERE o.OrderId IS NULL;\n\n-- SELF JOIN：找出薪資高於其主管的員工\nSELECT e.Name AS Employee, e.Salary,\n       m.Name AS Manager, m.Salary AS ManagerSalary\nFROM Employees e\nINNER JOIN Employees m ON e.ManagerId = m.EmpId\nWHERE e.Salary > m.Salary;",
+      "keyPoints": [
+        "INNER JOIN 只回傳兩側都有匹配的列",
+        "LEFT JOIN 保留左側全部，右側無匹配補 NULL",
+        "LEFT JOIN + WHERE 右側 IS NULL = 找出「只在左側」的列",
+        "SELF JOIN 需要別名，用於員工/主管階層查詢",
+        "LEFT JOIN 時過濾條件放 ON 與放 WHERE 結果不同（ON 先過濾，WHERE 後過濾）"
+      ],
+      "exercises": [
+        {
+          "id": 1,
+          "type": "coding",
+          "question": "資料表 Customers(CustomerId INT, Name NVARCHAR(50)) 與 Orders(OrderId INT, CustomerId INT, Amount DECIMAL(10,2))。請列出所有客戶姓名及其訂單總金額，沒有訂單的客戶也要顯示（總金額顯示 0）。",
+          "answer": "SELECT\n    c.CustomerId,\n    c.Name,\n    COALESCE(SUM(o.Amount), 0) AS TotalAmount\nFROM Customers c\nLEFT JOIN Orders o ON c.CustomerId = o.CustomerId\nGROUP BY c.CustomerId, c.Name\nORDER BY TotalAmount DESC;",
+          "explanation": "LEFT JOIN 保留所有客戶，COALESCE(SUM(o.Amount), 0) 把 NULL（無訂單）轉成 0。若改用 INNER JOIN，沒有訂單的客戶就不會出現。"
+        },
+        {
+          "id": 2,
+          "type": "coding",
+          "question": "承上題，請改寫為只找出「從未下單的客戶」，列出其 CustomerId 和 Name。",
+          "answer": "SELECT c.CustomerId, c.Name\nFROM Customers c\nLEFT JOIN Orders o ON c.CustomerId = o.CustomerId\nWHERE o.OrderId IS NULL;",
+          "explanation": "LEFT JOIN 後，從未下單的客戶其 Orders 欄位全為 NULL。WHERE o.OrderId IS NULL 篩選出這些列。這是「差集」的標準寫法，比 NOT IN / NOT EXISTS 更直覺。"
+        },
+        {
+          "id": 3,
+          "type": "coding",
+          "question": "資料表 Employees(EmpId INT, Name NVARCHAR(50), ManagerId INT, Salary DECIMAL(10,2))。請用 SELF JOIN 列出每位員工姓名及其主管姓名，沒有主管的員工主管欄位顯示 '（最高主管）'。",
+          "answer": "SELECT\n    e.Name AS Employee,\n    ISNULL(m.Name, N'（最高主管）') AS Manager\nFROM Employees e\nLEFT JOIN Employees m ON e.ManagerId = m.EmpId\nORDER BY e.Name;",
+          "explanation": "SELF JOIN：兩次引用同一資料表，分別取別名 e（員工）和 m（主管）。用 LEFT JOIN 確保沒有主管的最高層員工也會出現，ISNULL 把 NULL 替換成說明文字。"
+        },
+        {
+          "id": 4,
+          "type": "coding",
+          "question": "資料表 Products(ProductId INT, ProductName NVARCHAR(100), CategoryId INT) 與 Categories(CategoryId INT, CategoryName NVARCHAR(50))。請列出所有商品名稱及其類別名稱，若商品沒有對應的類別則類別欄顯示 '未分類'。",
+          "answer": "SELECT\n    p.ProductId,\n    p.ProductName,\n    ISNULL(c.CategoryName, N'未分類') AS CategoryName\nFROM Products p\nLEFT JOIN Categories c ON p.CategoryId = c.CategoryId\nORDER BY p.ProductId;",
+          "explanation": "LEFT JOIN Products 為主表，Categories 為副表。商品的 CategoryId 若在 Categories 中找不到對應（或為 NULL），則 CategoryName 為 NULL，用 ISNULL 替換。"
+        },
+        {
+          "id": 5,
+          "type": "coding",
+          "question": "資料表 TableA(Id INT, Val NVARCHAR(10)) 與 TableB(Id INT, Val NVARCHAR(10))。請用 FULL OUTER JOIN 找出「只存在於 TableA 或只存在於 TableB 的 Id」（即兩表的對稱差），列出 AId、BId。",
+          "answer": "SELECT a.Id AS AId, b.Id AS BId\nFROM TableA a\nFULL OUTER JOIN TableB b ON a.Id = b.Id\nWHERE a.Id IS NULL OR b.Id IS NULL;",
+          "explanation": "FULL OUTER JOIN 合併兩側，WHERE a.Id IS NULL OR b.Id IS NULL 篩選出只在其中一側的列。若 a.Id IS NULL 表示只在 B；若 b.Id IS NULL 表示只在 A。"
+        },
+        {
+          "id": 6,
+          "type": "coding",
+          "question": "資料表 Sizes(Size NVARCHAR(5)) 有 S/M/L 三筆，Colors(Color NVARCHAR(20)) 有 Red/Blue/Green 三筆。請用 CROSS JOIN 產生所有尺寸與顏色的組合，共 9 筆。",
+          "answer": "SELECT s.Size, c.Color\nFROM Sizes s\nCROSS JOIN Colors c\nORDER BY s.Size, c.Color;",
+          "explanation": "CROSS JOIN 產生笛卡兒積，結果列數 = 左表列數 × 右表列數（3 × 3 = 9）。CROSS JOIN 不需要 ON 條件，用於產生組合清單。"
+        },
+        {
+          "id": 7,
+          "type": "debugging",
+          "question": "以下查詢想列出所有客戶及其 2025 年的訂單，沒有 2025 年訂單的客戶也要顯示，但結果把沒有訂單的客戶都排除了：\n\n```sql\nSELECT c.Name, o.OrderId, o.OrderDate\nFROM Customers c\nLEFT JOIN Orders o ON c.CustomerId = o.CustomerId\nWHERE YEAR(o.OrderDate) = 2025;\n```\n請修正，讓沒有 2025 年訂單的客戶也出現在結果中。",
+          "buggyCode": "SELECT c.Name, o.OrderId, o.OrderDate\nFROM Customers c\nLEFT JOIN Orders o ON c.CustomerId = o.CustomerId\nWHERE YEAR(o.OrderDate) = 2025;",
+          "answer": "SELECT c.Name, o.OrderId, o.OrderDate\nFROM Customers c\nLEFT JOIN Orders o\n    ON c.CustomerId = o.CustomerId\n    AND YEAR(o.OrderDate) = 2025\nORDER BY c.Name;",
+          "explanation": "LEFT JOIN 後把過濾條件放 WHERE，等同於 INNER JOIN（因為 NULL 不等於 2025 被過濾掉）。應把年份條件移到 ON 子句，這樣 JOIN 時只配對 2025 年訂單，沒有匹配的客戶右側為 NULL 仍保留。"
+        },
+        {
+          "id": 8,
+          "type": "debugging",
+          "question": "以下 SELF JOIN 想找出每位員工及其主管姓名，但執行後最高主管（沒有 ManagerId）的員工完全不見了，請修正：\n\n```sql\nSELECT e.Name AS Employee, m.Name AS Manager\nFROM Employees e\nINNER JOIN Employees m ON e.ManagerId = m.EmpId;\n```",
+          "buggyCode": "SELECT e.Name AS Employee, m.Name AS Manager\nFROM Employees e\nINNER JOIN Employees m ON e.ManagerId = m.EmpId;",
+          "answer": "SELECT\n    e.Name AS Employee,\n    ISNULL(m.Name, N'（最高主管）') AS Manager\nFROM Employees e\nLEFT JOIN Employees m ON e.ManagerId = m.EmpId;",
+          "explanation": "INNER JOIN 要求兩側都有匹配，最高主管的 ManagerId 為 NULL，無法在 m 中找到對應列，因此被排除。改成 LEFT JOIN 可保留所有員工，最高主管的 Manager 欄為 NULL。"
+        },
+        {
+          "id": 9,
+          "type": "multiple-choice",
+          "question": "LEFT JOIN 和 INNER JOIN 最主要的差異是？",
+          "options": [
+            "A. LEFT JOIN 只回傳左表有的列，右表無匹配時整列捨棄",
+            "B. LEFT JOIN 回傳左表所有列，右表無匹配時右側欄位填 NULL",
+            "C. LEFT JOIN 比 INNER JOIN 效能更好，應優先使用",
+            "D. LEFT JOIN 必須搭配 WHERE IS NULL 才有意義"
+          ],
+          "answer": "B",
+          "explanation": "LEFT JOIN（左外部聯結）保留左表全部列，右表無匹配的列補 NULL。A 描述的是 INNER JOIN 行為。C 不一定成立（效能取決於資料和索引）。D 錯誤，LEFT JOIN 不一定要搭配 IS NULL。"
+        },
+        {
+          "id": 10,
+          "type": "multiple-choice",
+          "question": "以下哪種情況最適合使用 SELF JOIN？",
+          "options": [
+            "A. 合併兩個結構相同的不同資料表",
+            "B. 查詢同一資料表中列與列之間的關係（如員工與主管）",
+            "C. 產生兩個資料表的笛卡兒積",
+            "D. 找出只存在於一個資料表的資料"
+          ],
+          "answer": "B",
+          "explanation": "SELF JOIN 是把同一資料表與自己 JOIN，適用於資料表內部有父子/主從關係的情境，例如員工表中 ManagerId 參照同表的 EmpId。A 是一般 JOIN、C 是 CROSS JOIN、D 是 LEFT JOIN + IS NULL。"
+        }
+      ]
+    },
+    {
+      "id": "subquery-exists",
+      "title": "子查詢與 EXISTS / NOT EXISTS",
+      "content": "子查詢（Subquery）是嵌套在另一個 SQL 陳述式內的 SELECT，可出現在 SELECT、FROM、WHERE、HAVING 子句中。\n\n## 子查詢位置\n\n### WHERE 子句（純量子查詢）\n```sql\n-- 找出薪資高於平均薪資的員工\nSELECT Name, Salary\nFROM Employees\nWHERE Salary > (SELECT AVG(Salary) FROM Employees);\n```\n\n### WHERE IN（清單子查詢）\n```sql\n-- 找出有下單的客戶\nSELECT Name FROM Customers\nWHERE CustomerId IN (SELECT DISTINCT CustomerId FROM Orders);\n```\n\n### FROM 子句（衍生資料表 Derived Table）\n```sql\nSELECT d.DeptId, d.AvgSalary\nFROM (\n    SELECT DeptId, AVG(Salary) AS AvgSalary\n    FROM Employees\n    GROUP BY DeptId\n) AS d\nWHERE d.AvgSalary > 50000;\n```\n\n### SELECT 子句（相關子查詢）\n```sql\nSELECT Name,\n       (SELECT COUNT(*) FROM Orders o WHERE o.CustomerId = c.CustomerId) AS OrderCount\nFROM Customers c;\n```\n\n## EXISTS vs IN\n\n| 比較 | EXISTS | IN |\n|------|--------|----|\n| 運作方式 | 找到第一筆匹配即停止 | 先產生完整清單再比對 |\n| 效能（大資料量） | 通常較佳 | 子查詢結果集大時較慢 |\n| NULL 處理 | 不受 NULL 影響 | IN 遇到 NULL 可能出錯 |\n| 語意 | 「是否存在」 | 「值是否在清單中」 |\n\n```sql\n-- EXISTS：找有下過單的客戶\nSELECT c.Name\nFROM Customers c\nWHERE EXISTS (\n    SELECT 1 FROM Orders o\n    WHERE o.CustomerId = c.CustomerId\n);\n\n-- NOT EXISTS：找沒下過單的客戶\nSELECT c.Name\nFROM Customers c\nWHERE NOT EXISTS (\n    SELECT 1 FROM Orders o\n    WHERE o.CustomerId = c.CustomerId\n);\n```\n\n## NOT IN 的 NULL 陷阱\n\n```sql\n-- 若子查詢結果包含 NULL，NOT IN 整個條件變成 UNKNOWN，回傳 0 筆！\nSELECT * FROM A WHERE Id NOT IN (SELECT Id FROM B); -- 若 B.Id 有 NULL，此查詢回傳空集合\n-- 改用 NOT EXISTS 或加上 WHERE Id IS NOT NULL\n```\n\n## ANY / ALL\n\n```sql\n-- 薪資高於業務部「任一」員工\nSELECT Name FROM Employees\nWHERE Salary > ANY (SELECT Salary FROM Employees WHERE DeptId = 3);\n\n-- 薪資高於業務部「所有」員工\nSELECT Name FROM Employees\nWHERE Salary > ALL (SELECT Salary FROM Employees WHERE DeptId = 3);\n```",
+      "codeExample": "-- 找出訂單金額高於該客戶平均訂單金額的訂單（相關子查詢）\nSELECT o.OrderId, o.CustomerId, o.Amount\nFROM Orders o\nWHERE o.Amount > (\n    SELECT AVG(o2.Amount)\n    FROM Orders o2\n    WHERE o2.CustomerId = o.CustomerId  -- 相關：參照外層 o.CustomerId\n)\nORDER BY o.CustomerId;\n\n-- 找出每個部門薪資最高的員工（用子查詢）\nSELECT e.Name, e.DeptId, e.Salary\nFROM Employees e\nWHERE e.Salary = (\n    SELECT MAX(Salary)\n    FROM Employees\n    WHERE DeptId = e.DeptId\n);",
+      "keyPoints": [
+        "子查詢可在 SELECT / FROM / WHERE / HAVING 中使用",
+        "EXISTS 找到第一筆就停止，效能通常優於 IN（大資料量）",
+        "NOT IN 遇到子查詢含 NULL 時整個條件為 UNKNOWN，改用 NOT EXISTS",
+        "FROM 子句的子查詢（衍生表）必須加別名",
+        "相關子查詢（Correlated Subquery）參照外層查詢欄位，逐列執行"
+      ],
+      "exercises": [
+        {
+          "id": 1,
+          "type": "coding",
+          "question": "資料表 Employees(EmpId INT, Name NVARCHAR(50), DeptId INT, Salary DECIMAL(10,2))。請找出薪資高於「所有員工平均薪資」的員工姓名與薪資，按薪資降冪排列。",
+          "answer": "SELECT Name, Salary\nFROM Employees\nWHERE Salary > (SELECT AVG(Salary) FROM Employees)\nORDER BY Salary DESC;",
+          "explanation": "純量子查詢 (SELECT AVG(Salary) FROM Employees) 回傳單一數值，可直接用於 WHERE 比較。這是最基本的子查詢用法。"
+        },
+        {
+          "id": 2,
+          "type": "coding",
+          "question": "資料表 Customers(CustomerId INT, Name NVARCHAR(50)) 與 Orders(OrderId INT, CustomerId INT)。請用 EXISTS 找出至少有一筆訂單的客戶，列出 CustomerId 和 Name。",
+          "answer": "SELECT c.CustomerId, c.Name\nFROM Customers c\nWHERE EXISTS (\n    SELECT 1\n    FROM Orders o\n    WHERE o.CustomerId = c.CustomerId\n)\nORDER BY c.CustomerId;",
+          "explanation": "EXISTS (SELECT 1 ...) 只要找到第一筆匹配即回傳 TRUE，SELECT 1 是慣例寫法（不需要選取任何欄位）。相關子查詢透過 WHERE o.CustomerId = c.CustomerId 連結外層。"
+        },
+        {
+          "id": 3,
+          "type": "coding",
+          "question": "承上題，請改用 NOT EXISTS 找出「從未下單的客戶」。",
+          "answer": "SELECT c.CustomerId, c.Name\nFROM Customers c\nWHERE NOT EXISTS (\n    SELECT 1\n    FROM Orders o\n    WHERE o.CustomerId = c.CustomerId\n)\nORDER BY c.CustomerId;",
+          "explanation": "NOT EXISTS 是找「不存在匹配」的最安全寫法，不受 NULL 影響。比 NOT IN 更推薦，因為 NOT IN 遇到子查詢含 NULL 會回傳空集合。"
+        },
+        {
+          "id": 4,
+          "type": "coding",
+          "question": "資料表 Orders(OrderId INT, CustomerId INT, Amount DECIMAL(10,2))。請用 FROM 子句的衍生資料表（Derived Table），找出平均訂單金額超過 500 的客戶及其平均金額。",
+          "answer": "SELECT d.CustomerId, d.AvgAmount\nFROM (\n    SELECT CustomerId, AVG(Amount) AS AvgAmount\n    FROM Orders\n    GROUP BY CustomerId\n) AS d\nWHERE d.AvgAmount > 500\nORDER BY d.AvgAmount DESC;",
+          "explanation": "FROM 子句的子查詢稱為衍生資料表（Derived Table），必須給別名（此處為 d）。等同於 CTE 的寫法，但 CTE 可讀性更好。"
+        },
+        {
+          "id": 5,
+          "type": "coding",
+          "question": "資料表 Employees(EmpId INT, Name NVARCHAR(50), DeptId INT, Salary DECIMAL(10,2))。請找出每個部門薪資最高的員工（可能並列），列出 EmpId、Name、DeptId、Salary。",
+          "answer": "SELECT EmpId, Name, DeptId, Salary\nFROM Employees e\nWHERE Salary = (\n    SELECT MAX(Salary)\n    FROM Employees\n    WHERE DeptId = e.DeptId\n)\nORDER BY DeptId;",
+          "explanation": "相關子查詢：內層 WHERE DeptId = e.DeptId 參照外層每一列的 DeptId，計算該部門最高薪資。若有並列最高薪，兩位員工都會出現（與 ROW_NUMBER 取第一名不同）。"
+        },
+        {
+          "id": 6,
+          "type": "coding",
+          "question": "資料表 Products(ProductId INT, ProductName NVARCHAR(100), Price DECIMAL(10,2), CategoryId INT)。請在 SELECT 子句中用子查詢，列出每個商品名稱、價格，以及「同類別商品的平均價格」(AvgCategoryPrice)。",
+          "answer": "SELECT\n    ProductName,\n    Price,\n    (\n        SELECT AVG(Price)\n        FROM Products p2\n        WHERE p2.CategoryId = p.CategoryId\n    ) AS AvgCategoryPrice\nFROM Products p\nORDER BY CategoryId, Price;",
+          "explanation": "SELECT 子句中的相關子查詢每列執行一次，計算當前商品所在類別的平均價格。資料量大時效能較差，可改用視窗函數 AVG(Price) OVER (PARTITION BY CategoryId)。"
+        },
+        {
+          "id": 7,
+          "type": "debugging",
+          "question": "以下查詢想找出「不在黑名單中的客戶」，但執行後回傳 0 筆結果，請找出原因並修正：\n\n```sql\nSELECT CustomerId, Name\nFROM Customers\nWHERE CustomerId NOT IN (\n    SELECT BlockedCustomerId FROM Blacklist\n);\n```\n（提示：Blacklist 資料表的 BlockedCustomerId 欄位中有些列為 NULL）",
+          "buggyCode": "SELECT CustomerId, Name\nFROM Customers\nWHERE CustomerId NOT IN (\n    SELECT BlockedCustomerId FROM Blacklist\n);",
+          "answer": "SELECT CustomerId, Name\nFROM Customers\nWHERE NOT EXISTS (\n    SELECT 1\n    FROM Blacklist\n    WHERE BlockedCustomerId = Customers.CustomerId\n);\n\n-- 或排除 NULL 後使用 NOT IN\n-- WHERE CustomerId NOT IN (\n--     SELECT BlockedCustomerId FROM Blacklist\n--     WHERE BlockedCustomerId IS NOT NULL\n-- )",
+          "explanation": "NOT IN 遇到子查詢結果包含 NULL 時，整個比較結果變成 UNKNOWN（非 TRUE 也非 FALSE），導致 WHERE 條件不成立，回傳 0 筆。改用 NOT EXISTS 完全不受 NULL 影響，或在子查詢加 WHERE BlockedCustomerId IS NOT NULL。"
+        },
+        {
+          "id": 8,
+          "type": "debugging",
+          "question": "以下衍生資料表查詢執行時報錯，請找出問題並修正：\n\n```sql\nSELECT DeptId, AvgSalary\nFROM (\n    SELECT DeptId, AVG(Salary) AS AvgSalary\n    FROM Employees\n    GROUP BY DeptId\n)\nWHERE AvgSalary > 60000;\n```",
+          "buggyCode": "SELECT DeptId, AvgSalary\nFROM (\n    SELECT DeptId, AVG(Salary) AS AvgSalary\n    FROM Employees\n    GROUP BY DeptId\n)\nWHERE AvgSalary > 60000;",
+          "answer": "SELECT DeptId, AvgSalary\nFROM (\n    SELECT DeptId, AVG(Salary) AS AvgSalary\n    FROM Employees\n    GROUP BY DeptId\n) AS DeptAvg\nWHERE AvgSalary > 60000;",
+          "explanation": "FROM 子句中的子查詢（衍生資料表）必須給別名，否則 SQL Server 回報「必須為衍生資料表提供別名」錯誤。加上 AS DeptAvg 即可修正。"
+        },
+        {
+          "id": 9,
+          "type": "multiple-choice",
+          "question": "關於 EXISTS 與 IN 的差異，以下何者正確？",
+          "options": [
+            "A. EXISTS 回傳子查詢結果的第一欄值，IN 回傳布林值",
+            "B. EXISTS 只要找到第一筆匹配即停止掃描，IN 需產生完整清單",
+            "C. IN 的效能永遠優於 EXISTS",
+            "D. EXISTS 無法用於相關子查詢"
+          ],
+          "answer": "B",
+          "explanation": "EXISTS 採短路求值（Short-circuit），找到第一筆匹配即停止，大資料量時通常比 IN 快。IN 先產生子查詢的完整結果集再比對。A 錯（EXISTS 回傳 TRUE/FALSE）；C 不正確；D 錯（EXISTS 最常用於相關子查詢）。"
+        },
+        {
+          "id": 10,
+          "type": "multiple-choice",
+          "question": "下列哪個查詢的語意等同於「薪資高於業務部門最高薪資的員工」？",
+          "options": [
+            "A. WHERE Salary > ANY (SELECT Salary FROM Employees WHERE DeptName = '業務')",
+            "B. WHERE Salary > ALL (SELECT Salary FROM Employees WHERE DeptName = '業務')",
+            "C. WHERE Salary > (SELECT MIN(Salary) FROM Employees WHERE DeptName = '業務')",
+            "D. WHERE Salary IN (SELECT MAX(Salary) FROM Employees WHERE DeptName = '業務')"
+          ],
+          "answer": "B",
+          "explanation": "> ALL (子查詢) 等同於「大於子查詢中的所有值」，即大於最大值。> ANY 等同於「大於子查詢中任一值」，即大於最小值。D 用 IN 只能找「等於最高薪」的員工，語意不同。"
+        }
+      ]
+    },
+    {
+      "id": "sp-view-trigger",
+      "title": "預存程序、View、觸發器、函數",
+      "content": "## 預存程序（Stored Procedure）\n\n預先編譯並儲存在資料庫的 T-SQL 程式碼，可接受參數、含商業邏輯、回傳結果集。\n\n```sql\nCREATE PROCEDURE usp_GetEmployeesByDept\n    @DeptId INT,\n    @MinSalary DECIMAL(10,2) = 0  -- 預設值\nAS\nBEGIN\n    SET NOCOUNT ON;\n    SELECT EmpId, Name, Salary\n    FROM Employees\n    WHERE DeptId = @DeptId\n      AND Salary >= @MinSalary\n    ORDER BY Salary DESC;\nEND;\nGO\n\n-- 執行\nEXEC usp_GetEmployeesByDept @DeptId = 1, @MinSalary = 50000;\n```\n\n**OUTPUT 參數**\n```sql\nCREATE PROCEDURE usp_GetCount\n    @DeptId INT,\n    @Count   INT OUTPUT\nAS\nBEGIN\n    SELECT @Count = COUNT(*) FROM Employees WHERE DeptId = @DeptId;\nEND;\n\nDECLARE @cnt INT;\nEXEC usp_GetCount @DeptId = 1, @Count = @cnt OUTPUT;\nSELECT @cnt;\n```\n\n## View（檢視表）\n\nView 是封裝 SELECT 查詢的虛擬資料表，不儲存資料本身（Indexed View 例外）。\n\n```sql\nCREATE VIEW vw_ActiveCustomers AS\nSELECT CustomerId, Name, Email\nFROM Customers\nWHERE IsActive = 1;\nGO\n\nSELECT * FROM vw_ActiveCustomers;\n```\n\n**View 限制**：不可含 ORDER BY（除非有 TOP/OFFSET）、不可含 INTO、COMPUTE。\n\n## 觸發器（Trigger）\n\nTrigger 在 INSERT/UPDATE/DELETE 事件後（或前）自動執行。\n\n```sql\nCREATE TRIGGER trg_AfterInsertOrder\nON Orders\nAFTER INSERT\nAS\nBEGIN\n    SET NOCOUNT ON;\n    -- inserted 虛擬資料表含新插入的列\n    UPDATE Customers\n    SET LastOrderDate = GETDATE()\n    WHERE CustomerId IN (SELECT CustomerId FROM inserted);\nEND;\n```\n\n- **inserted**：INSERT/UPDATE 後的新資料\n- **deleted**：DELETE/UPDATE 前的舊資料\n- AFTER vs INSTEAD OF：AFTER 於動作完成後觸發，INSTEAD OF 取代動作本身\n\n## 使用者定義函數（UDF）\n\n```sql\n-- 純量值函數（回傳單一值）\nCREATE FUNCTION dbo.fn_GetFullName (@First NVARCHAR(50), @Last NVARCHAR(50))\nRETURNS NVARCHAR(100)\nAS\nBEGIN\n    RETURN @First + N' ' + @Last;\nEND;\n\n-- 資料表值函數（回傳資料表）\nCREATE FUNCTION dbo.fn_GetEmpByDept (@DeptId INT)\nRETURNS TABLE\nAS\nRETURN (\n    SELECT EmpId, Name, Salary FROM Employees WHERE DeptId = @DeptId\n);\n```\n\n## SP vs 函數比較\n\n| 比較 | Stored Procedure | UDF |\n|------|-----------------|-----|\n| 回傳值 | 結果集 / OUTPUT 參數 | 單值或資料表 |\n| 在 SELECT 中使用 | 不可 | 可（資料表值函數） |\n| 修改資料 | 可 | 純量 UDF 不可 |\n| 例外處理 | TRY/CATCH | 不支援 |",
+      "codeExample": "-- 預存程序：新增訂單並回傳新 OrderId\nCREATE PROCEDURE usp_CreateOrder\n    @CustomerId INT,\n    @Amount     DECIMAL(10,2),\n    @NewOrderId INT OUTPUT\nAS\nBEGIN\n    SET NOCOUNT ON;\n    BEGIN TRY\n        INSERT INTO Orders (CustomerId, Amount, OrderDate)\n        VALUES (@CustomerId, @Amount, GETDATE());\n        SET @NewOrderId = SCOPE_IDENTITY();\n    END TRY\n    BEGIN CATCH\n        SET @NewOrderId = -1;\n        THROW;\n    END CATCH\nEND;\nGO\n\n-- Trigger：記錄薪資異動稽核\nCREATE TRIGGER trg_AuditSalaryChange\nON Employees\nAFTER UPDATE\nAS\nBEGIN\n    SET NOCOUNT ON;\n    IF UPDATE(Salary)\n    BEGIN\n        INSERT INTO SalaryAudit (EmpId, OldSalary, NewSalary, ChangedAt)\n        SELECT d.EmpId, d.Salary, i.Salary, GETDATE()\n        FROM deleted d\n        INNER JOIN inserted i ON d.EmpId = i.EmpId\n        WHERE d.Salary <> i.Salary;\n    END\nEND;",
+      "keyPoints": [
+        "SP 用 CREATE PROCEDURE，OUTPUT 參數需在宣告和呼叫時都加 OUTPUT",
+        "View 是虛擬資料表，不含 ORDER BY（除非有 TOP）",
+        "Trigger 的 inserted/deleted 虛擬表分別含新/舊資料",
+        "AFTER UPDATE Trigger 中：deleted = 舊值，inserted = 新值",
+        "純量 UDF 可用在 SELECT；SP 不可直接用在 SELECT/FROM"
+      ],
+      "exercises": [
+        {
+          "id": 1,
+          "type": "coding",
+          "question": "請建立一個預存程序 usp_GetOrdersByCustomer，接受 @CustomerId INT 參數，回傳該客戶的所有訂單（OrderId、Amount、OrderDate），並依 OrderDate 降冪排列。",
+          "answer": "CREATE PROCEDURE usp_GetOrdersByCustomer\n    @CustomerId INT\nAS\nBEGIN\n    SET NOCOUNT ON;\n    SELECT OrderId, Amount, OrderDate\n    FROM Orders\n    WHERE CustomerId = @CustomerId\n    ORDER BY OrderDate DESC;\nEND;\nGO\n\n-- 執行方式\nEXEC usp_GetOrdersByCustomer @CustomerId = 1;",
+          "explanation": "SET NOCOUNT ON 可避免回傳「N 列受影響」的訊息，減少網路流量。參數用 @ 開頭，資料型別緊接其後。GO 是批次結束符號。"
+        },
+        {
+          "id": 2,
+          "type": "coding",
+          "question": "請建立一個預存程序 usp_TransferEmployee，接受 @EmpId INT 和 @NewDeptId INT，將指定員工轉調至新部門。同時用 OUTPUT 參數 @Success BIT 回傳是否成功（員工存在則 1，否則 0）。",
+          "answer": "CREATE PROCEDURE usp_TransferEmployee\n    @EmpId    INT,\n    @NewDeptId INT,\n    @Success  BIT OUTPUT\nAS\nBEGIN\n    SET NOCOUNT ON;\n    IF EXISTS (SELECT 1 FROM Employees WHERE EmpId = @EmpId)\n    BEGIN\n        UPDATE Employees SET DeptId = @NewDeptId WHERE EmpId = @EmpId;\n        SET @Success = 1;\n    END\n    ELSE\n        SET @Success = 0;\nEND;\nGO\n\n-- 執行\nDECLARE @ok BIT;\nEXEC usp_TransferEmployee @EmpId = 5, @NewDeptId = 2, @Success = @ok OUTPUT;\nSELECT @ok AS Success;",
+          "explanation": "OUTPUT 參數需在 CREATE PROCEDURE 宣告時加 OUTPUT，呼叫時也要加 OUTPUT 關鍵字。先用 EXISTS 確認員工存在才執行 UPDATE，否則設 @Success = 0。"
+        },
+        {
+          "id": 3,
+          "type": "coding",
+          "question": "請建立一個 View 名為 vw_EmployeeDeptInfo，合併 Employees 和 Departments 資料表，顯示 EmpId、Name、Salary、DeptName。",
+          "answer": "CREATE VIEW vw_EmployeeDeptInfo AS\nSELECT\n    e.EmpId,\n    e.Name,\n    e.Salary,\n    d.DeptName\nFROM Employees e\nINNER JOIN Departments d ON e.DeptId = d.DeptId;\nGO\n\n-- 使用\nSELECT * FROM vw_EmployeeDeptInfo WHERE Salary > 60000;",
+          "explanation": "View 封裝複雜的 JOIN 查詢，呼叫端只需 SELECT * FROM vw_EmployeeDeptInfo。View 不儲存資料，每次查詢時執行底層 SQL。"
+        },
+        {
+          "id": 4,
+          "type": "coding",
+          "question": "請建立一個 AFTER INSERT 觸發器 trg_AfterInsertEmployee，在 Employees 新增一筆員工後，自動在 AuditLog(EmpId, Action, ActionTime) 插入一筆記錄，Action 值為 'INSERT'。",
+          "answer": "CREATE TRIGGER trg_AfterInsertEmployee\nON Employees\nAFTER INSERT\nAS\nBEGIN\n    SET NOCOUNT ON;\n    INSERT INTO AuditLog (EmpId, Action, ActionTime)\n    SELECT EmpId, 'INSERT', GETDATE()\n    FROM inserted;\nEND;",
+          "explanation": "AFTER INSERT 觸發器在 INSERT 完成後執行。inserted 虛擬資料表包含所有新插入的列（可能是多筆，所以用 SELECT FROM inserted 而非直接取值）。"
+        },
+        {
+          "id": 5,
+          "type": "coding",
+          "question": "請建立一個純量值函數 dbo.fn_CalcBonus，接受 @Salary DECIMAL(10,2) 和 @Rate DECIMAL(5,2)，回傳 Salary × Rate / 100 的獎金金額（DECIMAL(10,2)）。",
+          "answer": "CREATE FUNCTION dbo.fn_CalcBonus\n(\n    @Salary DECIMAL(10,2),\n    @Rate   DECIMAL(5,2)\n)\nRETURNS DECIMAL(10,2)\nAS\nBEGIN\n    RETURN @Salary * @Rate / 100;\nEND;\nGO\n\n-- 使用\nSELECT Name, Salary, dbo.fn_CalcBonus(Salary, 10) AS Bonus\nFROM Employees;",
+          "explanation": "純量值函數語法：RETURNS 型別，函數體在 BEGIN...END 內，最後 RETURN 值。呼叫時必須加 schema 前綴（dbo.fn_CalcBonus），可直接用在 SELECT 清單中。"
+        },
+        {
+          "id": 6,
+          "type": "coding",
+          "question": "請建立一個 AFTER UPDATE 觸發器 trg_AuditSalary，當 Employees 的 Salary 被修改時，在 SalaryAudit(EmpId, OldSalary, NewSalary, ChangedAt) 記錄異動。若 Salary 未改變則不寫入。",
+          "answer": "CREATE TRIGGER trg_AuditSalary\nON Employees\nAFTER UPDATE\nAS\nBEGIN\n    SET NOCOUNT ON;\n    IF UPDATE(Salary)\n    BEGIN\n        INSERT INTO SalaryAudit (EmpId, OldSalary, NewSalary, ChangedAt)\n        SELECT\n            d.EmpId,\n            d.Salary AS OldSalary,\n            i.Salary AS NewSalary,\n            GETDATE()\n        FROM deleted d\n        INNER JOIN inserted i ON d.EmpId = i.EmpId\n        WHERE d.Salary <> i.Salary;\n    END\nEND;",
+          "explanation": "AFTER UPDATE 觸發器中：deleted 含修改前舊值，inserted 含修改後新值。IF UPDATE(Salary) 先確認是 Salary 欄位被更新；JOIN deleted 和 inserted 取得同一員工的新舊薪資；WHERE d.Salary <> i.Salary 排除值未變的情況。"
+        },
+        {
+          "id": 7,
+          "type": "debugging",
+          "question": "以下預存程序執行時沒有回傳 OUTPUT 參數的值，請找出問題並修正：\n\n```sql\nCREATE PROCEDURE usp_GetCount\n    @DeptId INT,\n    @Count  INT\nAS\nBEGIN\n    SELECT @Count = COUNT(*) FROM Employees WHERE DeptId = @DeptId;\nEND;\n\nDECLARE @cnt INT;\nEXEC usp_GetCount @DeptId = 1, @Count = @cnt OUTPUT;\nSELECT @cnt;\n```",
+          "buggyCode": "CREATE PROCEDURE usp_GetCount\n    @DeptId INT,\n    @Count  INT\nAS\nBEGIN\n    SELECT @Count = COUNT(*) FROM Employees WHERE DeptId = @DeptId;\nEND;\n\nDECLARE @cnt INT;\nEXEC usp_GetCount @DeptId = 1, @Count = @cnt OUTPUT;\nSELECT @cnt;",
+          "answer": "CREATE PROCEDURE usp_GetCount\n    @DeptId INT,\n    @Count  INT OUTPUT  -- 加 OUTPUT\nAS\nBEGIN\n    SET NOCOUNT ON;\n    SELECT @Count = COUNT(*) FROM Employees WHERE DeptId = @DeptId;\nEND;\n\nDECLARE @cnt INT;\nEXEC usp_GetCount @DeptId = 1, @Count = @cnt OUTPUT;\nSELECT @cnt;",
+          "explanation": "OUTPUT 參數必須在 CREATE PROCEDURE 的參數宣告中加上 OUTPUT 關鍵字，否則 SQL Server 把它當成一般輸入參數，不會將值傳回給呼叫端。"
+        },
+        {
+          "id": 8,
+          "type": "debugging",
+          "question": "以下 View 建立時報錯，請找出問題並修正：\n\n```sql\nCREATE VIEW vw_TopSalary AS\nSELECT TOP 10 EmpId, Name, Salary\nFROM Employees\nORDER BY Salary DESC;\n```",
+          "buggyCode": "CREATE VIEW vw_TopSalary AS\nSELECT TOP 10 EmpId, Name, Salary\nFROM Employees\nORDER BY Salary DESC;",
+          "answer": "-- 方法一：加 WITH TIES 確保語意正確（TOP + ORDER BY 在 View 中合法）\nCREATE VIEW vw_TopSalary AS\nSELECT TOP 10 WITH TIES EmpId, Name, Salary\nFROM Employees\nORDER BY Salary DESC;\n\n-- 方法二：不在 View 中排序，在查詢時排序\nCREATE VIEW vw_TopSalary AS\nSELECT TOP 10 EmpId, Name, Salary\nFROM Employees\nORDER BY Salary DESC;",
+          "explanation": "SQL Server 的 View 中允許 ORDER BY 搭配 TOP（有 TOP 時 ORDER BY 合法）。實際上原本 SQL 語法上是合法的——但考試常考此點：View 若沒有 TOP/OFFSET，不允許 ORDER BY。此題 View 有 TOP 10 所以可以建立，若是無 TOP 的情況才會報錯。"
+        },
+        {
+          "id": 9,
+          "type": "multiple-choice",
+          "question": "在 AFTER UPDATE 觸發器中，要取得「修改前的舊資料」應使用哪個虛擬資料表？",
+          "options": [
+            "A. inserted",
+            "B. deleted",
+            "C. updated",
+            "D. modified"
+          ],
+          "answer": "B",
+          "explanation": "T-SQL 觸發器有兩個特殊虛擬表：inserted（含新資料，INSERT/UPDATE 後的值）和 deleted（含舊資料，DELETE/UPDATE 前的值）。UPDATE 同時產生兩者：deleted 是舊值，inserted 是新值。"
+        },
+        {
+          "id": 10,
+          "type": "multiple-choice",
+          "question": "以下哪個說法關於預存程序（Stored Procedure）是正確的？",
+          "options": [
+            "A. 預存程序可以直接用在 SELECT 的 FROM 子句中",
+            "B. 預存程序第一次執行時會編譯並快取執行計畫",
+            "C. 預存程序不支援 TRY/CATCH 例外處理",
+            "D. 預存程序回傳值只能是整數"
+          ],
+          "answer": "B",
+          "explanation": "SP 第一次執行時 SQL Server 編譯並快取執行計畫（Execution Plan），之後執行可重用，效能較好。A 錯（SP 不能用在 FROM 子句，資料表值函數才可以）；C 錯（SP 完整支援 TRY/CATCH）；D 錯（可透過結果集或 OUTPUT 參數回傳任意型別）。"
+        }
+      ]
+    },
+    {
+      "id": "transaction-acid",
+      "title": "Transaction 與 ACID",
+      "content": "## 什麼是 Transaction（交易）\n\nTransaction 是一組 SQL 操作的邏輯單元，必須全部成功或全部撤銷，確保資料一致性。\n\n```sql\nBEGIN TRANSACTION;\n    UPDATE Accounts SET Balance = Balance - 1000 WHERE AccId = 1;\n    UPDATE Accounts SET Balance = Balance + 1000 WHERE AccId = 2;\nCOMMIT TRANSACTION;\n```\n\n## ACID 四大特性\n\n| 特性 | 英文 | 說明 |\n|------|------|------|\n| 原子性 | Atomicity | 全部成功或全部失敗，不可分割 |\n| 一致性 | Consistency | 交易前後資料庫保持完整性約束 |\n| 隔離性 | Isolation | 並行交易互不干擾 |\n| 持久性 | Durability | COMMIT 後資料永久保存，不因故障遺失 |\n\n## TRY/CATCH 搭配 ROLLBACK\n\n```sql\nBEGIN TRANSACTION;\nBEGIN TRY\n    UPDATE Accounts SET Balance = Balance - 1000 WHERE AccId = 1;\n    UPDATE Accounts SET Balance = Balance + 1000 WHERE AccId = 2;\n    COMMIT TRANSACTION;\nEND TRY\nBEGIN CATCH\n    ROLLBACK TRANSACTION;\n    -- 重新拋出錯誤\n    THROW;\nEND CATCH\n```\n\n## @@TRANCOUNT\n\n- `@@TRANCOUNT > 0`：目前在交易中\n- BEGIN TRANSACTION 讓 @@TRANCOUNT +1\n- COMMIT 讓 @@TRANCOUNT -1（到 0 才真正提交）\n- ROLLBACK 讓 @@TRANCOUNT 歸 0（全部撤銷）\n\n## SAVEPOINT（部分復原）\n\n```sql\nBEGIN TRANSACTION;\n    INSERT INTO Orders ...;\n    SAVE TRANSACTION sp1;\n    INSERT INTO OrderDetails ...;\n    IF @@ERROR <> 0\n        ROLLBACK TRANSACTION sp1;  -- 只回滾到 sp1\n    COMMIT TRANSACTION;\n```\n\n## 隔離等級（Isolation Level）\n\n| 等級 | Dirty Read | Non-Repeatable Read | Phantom Read |\n|------|-----------|--------------------|--------------|\n| READ UNCOMMITTED | 可能 | 可能 | 可能 |\n| READ COMMITTED（預設）| 不可能 | 可能 | 可能 |\n| REPEATABLE READ | 不可能 | 不可能 | 可能 |\n| SERIALIZABLE | 不可能 | 不可能 | 不可能 |\n\n```sql\nSET TRANSACTION ISOLATION LEVEL SERIALIZABLE;\nBEGIN TRANSACTION;\n    ...\nCOMMIT;\n```\n\n## 常見並發問題\n- **Dirty Read（髒讀）**：讀到其他未提交交易的資料\n- **Non-Repeatable Read（不可重複讀）**：同一交易兩次讀取同一列，值不同\n- **Phantom Read（幻讀）**：同一交易兩次查詢，第二次多出或少了列",
+      "codeExample": "-- 完整銀行轉帳交易（含錯誤處理）\nCREATE PROCEDURE usp_Transfer\n    @FromAccId INT,\n    @ToAccId   INT,\n    @Amount    DECIMAL(10,2)\nAS\nBEGIN\n    SET NOCOUNT ON;\n\n    IF @Amount <= 0\n        THROW 50001, N'轉帳金額必須大於 0', 1;\n\n    BEGIN TRANSACTION;\n    BEGIN TRY\n        -- 確認餘額足夠\n        DECLARE @Balance DECIMAL(10,2);\n        SELECT @Balance = Balance FROM Accounts WHERE AccId = @FromAccId;\n\n        IF @Balance < @Amount\n            THROW 50002, N'餘額不足', 1;\n\n        UPDATE Accounts SET Balance = Balance - @Amount WHERE AccId = @FromAccId;\n        UPDATE Accounts SET Balance = Balance + @Amount WHERE AccId = @ToAccId;\n\n        COMMIT TRANSACTION;\n    END TRY\n    BEGIN CATCH\n        IF @@TRANCOUNT > 0\n            ROLLBACK TRANSACTION;\n        THROW;\n    END CATCH\nEND;",
+      "keyPoints": [
+        "ACID：Atomicity（原子）、Consistency（一致）、Isolation（隔離）、Durability（持久）",
+        "TRY/CATCH 搭配 BEGIN/COMMIT/ROLLBACK TRANSACTION 是標準錯誤處理模式",
+        "CATCH 中先判斷 @@TRANCOUNT > 0 再 ROLLBACK，避免重複 ROLLBACK 報錯",
+        "ROLLBACK 讓 @@TRANCOUNT 歸 0（全部撤銷）；COMMIT 每次 -1",
+        "預設隔離等級 READ COMMITTED：不會讀到未提交資料，但同一交易可能讀到不同值"
+      ],
+      "exercises": [
+        {
+          "id": 1,
+          "type": "coding",
+          "question": "請寫一個 T-SQL 交易，將 Accounts 資料表中 AccId=1 的帳戶餘額扣除 500，並將 AccId=2 的帳戶餘額增加 500。若任一 UPDATE 失敗則全部撤銷，使用 TRY/CATCH 處理。",
+          "answer": "BEGIN TRANSACTION;\nBEGIN TRY\n    UPDATE Accounts SET Balance = Balance - 500 WHERE AccId = 1;\n    UPDATE Accounts SET Balance = Balance + 500 WHERE AccId = 2;\n    COMMIT TRANSACTION;\nEND TRY\nBEGIN CATCH\n    IF @@TRANCOUNT > 0\n        ROLLBACK TRANSACTION;\n    THROW;\nEND CATCH",
+          "explanation": "標準轉帳交易結構：BEGIN TRANSACTION → 操作 → COMMIT；錯誤時 CATCH 中 ROLLBACK。判斷 @@TRANCOUNT > 0 確保交易尚未被其他地方 ROLLBACK 才執行 ROLLBACK。"
+        },
+        {
+          "id": 2,
+          "type": "coding",
+          "question": "請寫一個預存程序 usp_DeleteOrder，刪除指定訂單（@OrderId）時同時刪除其明細（OrderDetails），若任一刪除失敗則全部復原。使用 TRY/CATCH 與 Transaction。",
+          "answer": "CREATE PROCEDURE usp_DeleteOrder\n    @OrderId INT\nAS\nBEGIN\n    SET NOCOUNT ON;\n    BEGIN TRANSACTION;\n    BEGIN TRY\n        DELETE FROM OrderDetails WHERE OrderId = @OrderId;\n        DELETE FROM Orders WHERE OrderId = @OrderId;\n        COMMIT TRANSACTION;\n    END TRY\n    BEGIN CATCH\n        IF @@TRANCOUNT > 0\n            ROLLBACK TRANSACTION;\n        THROW;\n    END CATCH\nEND;",
+          "explanation": "刪除有外鍵關聯的資料需先刪子表（OrderDetails）再刪主表（Orders），否則外鍵約束會報錯。包在 Transaction 中確保原子性。"
+        },
+        {
+          "id": 3,
+          "type": "coding",
+          "question": "請用 SAVEPOINT 實作以下邏輯：先插入一筆 Orders，再設一個 SAVEPOINT sp1，接著插入 OrderDetails。若 OrderDetails 插入失敗則只復原到 sp1（保留 Orders 的插入），最後提交整個交易。",
+          "answer": "BEGIN TRANSACTION;\nBEGIN TRY\n    INSERT INTO Orders (CustomerId, OrderDate, Amount)\n    VALUES (1, GETDATE(), 1000);\n\n    DECLARE @OrderId INT = SCOPE_IDENTITY();\n\n    SAVE TRANSACTION sp1;\n\n    BEGIN TRY\n        INSERT INTO OrderDetails (OrderId, ProductId, Qty)\n        VALUES (@OrderId, 5, 2);\n    END TRY\n    BEGIN CATCH\n        ROLLBACK TRANSACTION sp1;  -- 只回滾到 sp1\n    END CATCH\n\n    COMMIT TRANSACTION;\nEND TRY\nBEGIN CATCH\n    IF @@TRANCOUNT > 0\n        ROLLBACK TRANSACTION;\n    THROW;\nEND CATCH",
+          "explanation": "SAVE TRANSACTION sp1 建立儲存點；ROLLBACK TRANSACTION sp1 只復原到該儲存點（不會讓 @@TRANCOUNT 歸 0），之後仍可繼續執行並 COMMIT 外層交易。"
+        },
+        {
+          "id": 4,
+          "type": "coding",
+          "question": "ACID 中的「隔離性」會引發並行問題。請用 T-SQL 設定本次連線的隔離等級為 SERIALIZABLE，再開始一個查詢 Accounts 資料表的交易。",
+          "answer": "SET TRANSACTION ISOLATION LEVEL SERIALIZABLE;\n\nBEGIN TRANSACTION;\n    SELECT AccId, Balance\n    FROM Accounts\n    WHERE AccId BETWEEN 1 AND 100;\nCOMMIT TRANSACTION;",
+          "explanation": "SERIALIZABLE 是最嚴格的隔離等級，完全防止 Dirty Read、Non-Repeatable Read、Phantom Read，但並發效能最低（鎖定範圍最大）。SET TRANSACTION ISOLATION LEVEL 影響之後所有在該連線執行的交易。"
+        },
+        {
+          "id": 5,
+          "type": "coding",
+          "question": "請寫一個查詢，在交易開始後，先檢查 @@TRANCOUNT 確認目前在交易中，執行一個 INSERT，然後主動 ROLLBACK 並再次確認 @@TRANCOUNT 回到 0。",
+          "answer": "BEGIN TRANSACTION;\nSELECT @@TRANCOUNT AS BeforeRollback;  -- 應為 1\n\nINSERT INTO TestLog (Message) VALUES (N'測試');\n\nROLLBACK TRANSACTION;\nSELECT @@TRANCOUNT AS AfterRollback;   -- 應為 0",
+          "explanation": "@@TRANCOUNT 是系統函數，回傳目前巢狀交易計數。BEGIN TRANSACTION 讓計數 +1；ROLLBACK 不論巢狀層數直接歸 0；COMMIT 每次 -1（到 0 才真正提交）。"
+        },
+        {
+          "id": 6,
+          "type": "coding",
+          "question": "請在一個交易中執行兩個 INSERT，若第一個 INSERT 成功、第二個 INSERT 失敗，使用 TRY/CATCH 確保兩個 INSERT 都被撤銷，並用 ERROR_MESSAGE() 回傳錯誤訊息。",
+          "answer": "BEGIN TRANSACTION;\nBEGIN TRY\n    INSERT INTO TableA (Name) VALUES (N'第一筆');\n    INSERT INTO TableB (Name) VALUES (N'第二筆');  -- 假設此行可能失敗\n    COMMIT TRANSACTION;\nEND TRY\nBEGIN CATCH\n    IF @@TRANCOUNT > 0\n        ROLLBACK TRANSACTION;\n    SELECT\n        ERROR_NUMBER()  AS ErrNumber,\n        ERROR_MESSAGE() AS ErrMessage,\n        ERROR_LINE()    AS ErrLine;\nEND CATCH",
+          "explanation": "CATCH 區塊提供 ERROR_NUMBER()、ERROR_MESSAGE()、ERROR_LINE()、ERROR_SEVERITY()、ERROR_STATE() 等函數取得錯誤資訊。ROLLBACK 確保兩個 INSERT 都撤銷（原子性）。"
+        },
+        {
+          "id": 7,
+          "type": "debugging",
+          "question": "以下交易程式碼在 CATCH 中呼叫 ROLLBACK 時報錯「此 ROLLBACK TRANSACTION 要求沒有對應的 BEGIN TRANSACTION」，請找出問題並修正：\n\n```sql\nBEGIN TRANSACTION;\nBEGIN TRY\n    UPDATE Accounts SET Balance = Balance - 500 WHERE AccId = 1;\n    UPDATE Accounts SET Balance = Balance + 500 WHERE AccId = 2;\n    COMMIT TRANSACTION;\nEND TRY\nBEGIN CATCH\n    ROLLBACK TRANSACTION;\n    THROW;\nEND CATCH\n```\n（提示：考慮 COMMIT 已執行後再發生錯誤的情境）",
+          "buggyCode": "BEGIN TRANSACTION;\nBEGIN TRY\n    UPDATE Accounts SET Balance = Balance - 500 WHERE AccId = 1;\n    UPDATE Accounts SET Balance = Balance + 500 WHERE AccId = 2;\n    COMMIT TRANSACTION;\nEND TRY\nBEGIN CATCH\n    ROLLBACK TRANSACTION;\n    THROW;\nEND CATCH",
+          "answer": "BEGIN TRANSACTION;\nBEGIN TRY\n    UPDATE Accounts SET Balance = Balance - 500 WHERE AccId = 1;\n    UPDATE Accounts SET Balance = Balance + 500 WHERE AccId = 2;\n    COMMIT TRANSACTION;\nEND TRY\nBEGIN CATCH\n    IF @@TRANCOUNT > 0\n        ROLLBACK TRANSACTION;\n    THROW;\nEND CATCH",
+          "explanation": "若 COMMIT 已執行（@@TRANCOUNT 已歸 0），CATCH 中無條件執行 ROLLBACK 會報錯「沒有對應的 BEGIN TRANSACTION」。加上 IF @@TRANCOUNT > 0 判斷即可安全防範。這是考試最常考的 Transaction 錯誤。"
+        },
+        {
+          "id": 8,
+          "type": "debugging",
+          "question": "以下程式碼想在巢狀交易中讓內層交易獨立提交，但實際上外層 ROLLBACK 後內層的 INSERT 也被撤銷了，請解釋原因（不需修改程式碼，寫出解釋即可）：\n\n```sql\nBEGIN TRANSACTION outer_tx;\n    INSERT INTO LogA (Msg) VALUES ('outer');\n    BEGIN TRANSACTION inner_tx;\n        INSERT INTO LogB (Msg) VALUES ('inner');\n    COMMIT TRANSACTION inner_tx;  -- 以為 inner 獨立提交\nROLLBACK TRANSACTION outer_tx;   -- 實際上 LogB 的資料也消失\n```",
+          "buggyCode": "BEGIN TRANSACTION outer_tx;\n    INSERT INTO LogA (Msg) VALUES ('outer');\n    BEGIN TRANSACTION inner_tx;\n        INSERT INTO LogB (Msg) VALUES ('inner');\n    COMMIT TRANSACTION inner_tx;\nROLLBACK TRANSACTION outer_tx;",
+          "answer": "-- 解釋：SQL Server 不支援真正的巢狀獨立交易。\n-- COMMIT TRANSACTION inner_tx 只是讓 @@TRANCOUNT 從 2 減到 1，\n-- 並非真正提交到資料庫。\n-- 只有 @@TRANCOUNT 從 1 降到 0 的那次 COMMIT 才真正寫入。\n-- 外層 ROLLBACK TRANSACTION outer_tx 使 @@TRANCOUNT 歸 0，\n-- 因此內外層所有操作都被撤銷，LogB 的資料也消失。\n-- 若需真正獨立的內層交易，需使用 AUTONOMOUS TRANSACTION 概念，\n-- 在 SQL Server 可改用獨立連線或 Service Broker 實現。",
+          "explanation": "SQL Server 巢狀交易的 COMMIT 只遞減 @@TRANCOUNT，不做真正提交。只有最外層（@@TRANCOUNT 從 1→0）的 COMMIT 才真正持久化。一旦外層 ROLLBACK，全部撤銷。這是理解 @@TRANCOUNT 語意的關鍵考點。"
+        },
+        {
+          "id": 9,
+          "type": "multiple-choice",
+          "question": "ACID 中的「A（Atomicity，原子性）」描述的是？",
+          "options": [
+            "A. 交易執行期間，其他交易看不到未提交的變更",
+            "B. 交易內的所有操作要嘛全部成功，要嘛全部撤銷",
+            "C. 交易提交後，資料永久保存不因系統故障遺失",
+            "D. 交易前後資料庫必須符合所有完整性約束"
+          ],
+          "answer": "B",
+          "explanation": "A = Atomicity（原子性）：不可分割，全成功或全失敗。C = Durability（持久性）。D = Consistency（一致性）。A 選項描述的是 Isolation（隔離性）。"
+        },
+        {
+          "id": 10,
+          "type": "multiple-choice",
+          "question": "SQL Server 的預設交易隔離等級是？此等級能防止哪種並發問題？",
+          "options": [
+            "A. READ UNCOMMITTED — 防止所有並發問題",
+            "B. READ COMMITTED — 防止 Dirty Read",
+            "C. REPEATABLE READ — 防止 Dirty Read 與 Non-Repeatable Read",
+            "D. SERIALIZABLE — 防止所有並發問題"
+          ],
+          "answer": "B",
+          "explanation": "SQL Server 預設隔離等級為 READ COMMITTED，確保只讀已提交的資料（防止 Dirty Read），但仍可能發生 Non-Repeatable Read 和 Phantom Read。SERIALIZABLE 最嚴格，防止全部三種問題但並發效能最低。"
+        }
+      ]
+    },
+    {
+      "id": "index",
+      "title": "Index（索引）",
+      "content": "索引（Index）是加速資料查詢的資料結構，代價是額外的儲存空間與寫入時的維護成本。\n\n## 索引類型\n\n### Clustered Index（叢集索引）\n- 資料列**實際依索引鍵排列**儲存在磁碟上\n- 每個資料表**只能有一個** Clustered Index\n- 建立 PRIMARY KEY 時 SQL Server 預設建立 Clustered Index\n- 範圍查詢（BETWEEN、>、<）效率極佳\n\n```sql\nCREATE CLUSTERED INDEX ix_Orders_OrderDate\nON Orders (OrderDate ASC);\n```\n\n### Non-Clustered Index（非叢集索引）\n- 獨立的索引結構，葉節點儲存索引鍵 + 指向資料列的書籤\n- 每個資料表可以有**多個** Non-Clustered Index（最多 999 個）\n- 適合用於 WHERE、JOIN、ORDER BY 的非主鍵欄位\n\n```sql\nCREATE NONCLUSTERED INDEX ix_Employees_DeptId\nON Employees (DeptId)\nINCLUDE (Name, Salary);  -- 覆蓋索引：把常查欄位包進去\n```\n\n### Unique Index（唯一索引）\n```sql\nCREATE UNIQUE INDEX ux_Customers_Email\nON Customers (Email);\n```\n\n### Composite Index（複合索引）\n```sql\nCREATE INDEX ix_Orders_Customer_Date\nON Orders (CustomerId, OrderDate);\n-- 可加速：WHERE CustomerId = ? AND OrderDate = ?\n-- 也可加速：WHERE CustomerId = ?（前置欄位）\n-- 無法加速：WHERE OrderDate = ?（跳過前置欄位）\n```\n\n## 覆蓋索引（Covering Index）\n\n查詢所需欄位全在索引中，不需回查資料表（Index Seek only，無 Key Lookup）：\n\n```sql\nCREATE INDEX ix_Cover\nON Orders (CustomerId)\nINCLUDE (Amount, OrderDate);\n\n-- 以下查詢完全由索引滿足，不需存取資料表\nSELECT Amount, OrderDate\nFROM Orders\nWHERE CustomerId = 5;\n```\n\n## 索引失效情境（考試重點）\n\n```sql\n-- 1. 欄位做運算：索引失效\nWHERE YEAR(OrderDate) = 2025          -- 改成 WHERE OrderDate >= '2025-01-01'\n\n-- 2. 函數包住欄位：索引失效\nWHERE UPPER(Email) = 'TEST@TEST.COM'  -- 改成 WHERE Email = 'test@test.com'\n\n-- 3. LIKE 前置萬用字元：索引失效\nWHERE Name LIKE '%王%'               -- 前置 % 無法使用 B-Tree 索引\nWHERE Name LIKE '王%'               -- 後置 % 可使用索引\n\n-- 4. != 或 NOT IN：通常索引失效（全表掃描較快）\nWHERE Status != 1\n```\n\n## 刪除索引\n\n```sql\nDROP INDEX ix_Employees_DeptId ON Employees;\n```\n\n## 查看執行計畫\n\n```sql\nSET STATISTICS IO ON;\nSET SHOWPLAN_TEXT ON;\n```",
+      "codeExample": "-- 建立複合索引並說明前置欄位原則\nCREATE NONCLUSTERED INDEX ix_Orders_Cust_Date\nON Orders (CustomerId ASC, OrderDate DESC)\nINCLUDE (Amount);\n\n-- ✅ 可以用到索引（使用前置欄位 CustomerId）\nSELECT Amount FROM Orders\nWHERE CustomerId = 10 AND OrderDate >= '2025-01-01';\n\n-- ✅ 可以用到索引（只用前置欄位）\nSELECT Amount FROM Orders WHERE CustomerId = 10;\n\n-- ❌ 無法有效使用索引（跳過 CustomerId，直接用 OrderDate）\nSELECT Amount FROM Orders WHERE OrderDate = '2025-06-01';\n\n-- 覆蓋索引：Amount 在 INCLUDE 中，查詢不需回查資料表\nSELECT OrderDate, Amount FROM Orders WHERE CustomerId = 10;",
+      "keyPoints": [
+        "Clustered Index：資料依索引排序實體存放，每表只能一個",
+        "Non-Clustered Index：獨立結構，每表可多個，葉節點含書籤",
+        "INCLUDE 欄位：做覆蓋索引，避免 Key Lookup，提升查詢效能",
+        "複合索引前置欄位原則：WHERE 跳過前置欄位則索引失效",
+        "索引失效情境：欄位做運算、函數包欄位、LIKE '%前置%'"
+      ],
+      "exercises": [
+        {
+          "id": 1,
+          "type": "coding",
+          "question": "請為 Employees 資料表的 DeptId 欄位建立一個非叢集索引（ix_Emp_DeptId），同時將 Name 和 Salary 欄位加入 INCLUDE，使查詢「SELECT Name, Salary FROM Employees WHERE DeptId = ?」不需回查資料表。",
+          "answer": "CREATE NONCLUSTERED INDEX ix_Emp_DeptId\nON Employees (DeptId)\nINCLUDE (Name, Salary);",
+          "explanation": "INCLUDE 把 Name 和 Salary 加入索引的葉節點，查詢所需欄位（DeptId + Name + Salary）全在索引中，形成覆蓋索引，不需 Key Lookup 回查資料表，效能最佳。"
+        },
+        {
+          "id": 2,
+          "type": "coding",
+          "question": "請為 Orders 資料表建立一個複合非叢集索引 ix_Orders_Cust_Date，依 CustomerId 升冪、OrderDate 降冪排列。",
+          "answer": "CREATE NONCLUSTERED INDEX ix_Orders_Cust_Date\nON Orders (CustomerId ASC, OrderDate DESC);",
+          "explanation": "複合索引的欄位順序很重要（前置欄位原則）。此索引適合 WHERE CustomerId = ? ORDER BY OrderDate DESC 的查詢，或 WHERE CustomerId = ? AND OrderDate BETWEEN ? AND ? 的篩選。"
+        },
+        {
+          "id": 3,
+          "type": "coding",
+          "question": "請為 Customers 資料表的 Email 欄位建立唯一索引 ux_Cust_Email，確保 Email 不重複。",
+          "answer": "CREATE UNIQUE NONCLUSTERED INDEX ux_Cust_Email\nON Customers (Email);",
+          "explanation": "UNIQUE INDEX 同時建立唯一性約束與索引。插入或更新重複 Email 時會報錯。與 UNIQUE CONSTRAINT 效果相同，但直接建立索引可以更靈活控制（如 INCLUDE、篩選條件等）。"
+        },
+        {
+          "id": 4,
+          "type": "coding",
+          "question": "請將 Orders 資料表的 OrderDate 欄位改為叢集索引（先刪除現有 PRIMARY KEY 的叢集索引，再建立新的）。語法上只需寫「建立 Clustered Index」的部分。",
+          "answer": "-- 建立叢集索引（若表上已有主鍵的叢集索引，需先移除）\nCREATE CLUSTERED INDEX ix_Orders_OrderDate\nON Orders (OrderDate ASC);\n\n-- 若要先移除主鍵的叢集索引，使用：\n-- ALTER TABLE Orders DROP CONSTRAINT PK_Orders;\n-- 再重建主鍵為非叢集：\n-- ALTER TABLE Orders ADD CONSTRAINT PK_Orders PRIMARY KEY NONCLUSTERED (OrderId);",
+          "explanation": "每個資料表只能有一個 Clustered Index。若主鍵已是 Clustered，要把 Clustered 改到其他欄位，需先將主鍵改為 NONCLUSTERED。範圍查詢（BETWEEN 日期）最適合用 Clustered Index。"
+        },
+        {
+          "id": 5,
+          "type": "coding",
+          "question": "請寫出以下查詢的「索引友善」改寫版本（原版因欄位做函數運算導致索引失效）：\n\n```sql\n-- 原版（索引失效）\nSELECT OrderId, Amount FROM Orders WHERE YEAR(OrderDate) = 2025;\n```",
+          "answer": "-- 改寫：用範圍條件取代函數，索引可使用\nSELECT OrderId, Amount\nFROM Orders\nWHERE OrderDate >= '2025-01-01'\n  AND OrderDate <  '2026-01-01';",
+          "explanation": "YEAR(OrderDate) = 2025 對每列計算函數，索引無法直接使用（需全表掃描）。改成 OrderDate >= '2025-01-01' AND OrderDate < '2026-01-01' 是 SARGable（Search ARGument able）條件，能直接使用 B-Tree 索引的範圍掃描。"
+        },
+        {
+          "id": 6,
+          "type": "coding",
+          "question": "請刪除 Employees 資料表上的索引 ix_Emp_DeptId。",
+          "answer": "DROP INDEX ix_Emp_DeptId ON Employees;",
+          "explanation": "DROP INDEX 語法在 SQL Server 中必須指定「索引名稱 ON 資料表名稱」。與 Oracle 不同，SQL Server 的 DROP INDEX 需要 ON 子句。注意不能用 DROP INDEX 刪除因 PRIMARY KEY 或 UNIQUE CONSTRAINT 建立的索引（需用 ALTER TABLE DROP CONSTRAINT）。"
+        },
+        {
+          "id": 7,
+          "type": "debugging",
+          "question": "DBA 反映以下查詢雖然 Email 欄位有索引，但執行計畫仍顯示全表掃描（Index Scan），請找出原因並改寫成可使用索引的版本：\n\n```sql\nSELECT CustomerId, Name\nFROM Customers\nWHERE UPPER(Email) = 'JOHN@EXAMPLE.COM';\n```",
+          "buggyCode": "SELECT CustomerId, Name\nFROM Customers\nWHERE UPPER(Email) = 'JOHN@EXAMPLE.COM';",
+          "answer": "-- 方法一：移除函數，統一資料大小寫（推薦）\nSELECT CustomerId, Name\nFROM Customers\nWHERE Email = 'john@example.com';\n\n-- 方法二：若資料庫 collation 區分大小寫，可改用不區分大小寫的 collation\nSELECT CustomerId, Name\nFROM Customers\nWHERE Email COLLATE SQL_Latin1_General_CP1_CI_AS = 'JOHN@EXAMPLE.COM';",
+          "explanation": "UPPER(Email) 對每列呼叫函數，破壞 SARGability，索引無法直接使用。最好的做法是在儲存時統一大小寫，查詢直接比對；或使用不區分大小寫的 collation（CI = Case Insensitive）讓索引可以使用。"
+        },
+        {
+          "id": 8,
+          "type": "debugging",
+          "question": "以下複合索引查詢效能不如預期（執行計畫顯示 Index Scan 而非 Index Seek），請解釋原因：\n\n```sql\n-- 索引定義\nCREATE INDEX ix_Orders_Cust_Date ON Orders (CustomerId, OrderDate);\n\n-- 查詢\nSELECT * FROM Orders WHERE OrderDate = '2025-06-01';\n```",
+          "buggyCode": "-- 索引定義\nCREATE INDEX ix_Orders_Cust_Date ON Orders (CustomerId, OrderDate);\n\n-- 查詢\nSELECT * FROM Orders WHERE OrderDate = '2025-06-01';",
+          "answer": "-- 原因：違反複合索引「前置欄位原則」\n-- 複合索引 (CustomerId, OrderDate) 的 B-Tree 先按 CustomerId 排序，\n-- 再按 OrderDate 排序。跳過前置欄位 CustomerId 直接過濾 OrderDate，\n-- 索引無法做 Seek（只能 Scan）。\n\n-- 解決方案：\n-- 1. 查詢條件改為包含 CustomerId\nSELECT * FROM Orders WHERE CustomerId = 10 AND OrderDate = '2025-06-01';\n\n-- 2. 或單獨為 OrderDate 建立索引\nCREATE INDEX ix_Orders_Date ON Orders (OrderDate);",
+          "explanation": "複合索引 (CustomerId, OrderDate) 只對「前置欄位 CustomerId 有條件」的查詢有效（Index Seek）。直接跳過 CustomerId 只過濾 OrderDate，索引雖存在但只能做全索引掃描（Index Scan）。記住：最左前綴原則（Leftmost Prefix Rule）。"
+        },
+        {
+          "id": 9,
+          "type": "multiple-choice",
+          "question": "關於 Clustered Index 與 Non-Clustered Index 的差異，以下何者正確？",
+          "options": [
+            "A. 每個資料表可以有多個 Clustered Index",
+            "B. Non-Clustered Index 的葉節點直接儲存完整的資料列",
+            "C. Clustered Index 決定資料列在磁碟上的實際儲存順序，每表只能有一個",
+            "D. 建立 PRIMARY KEY 時，SQL Server 預設建立 Non-Clustered Index"
+          ],
+          "answer": "C",
+          "explanation": "Clustered Index 讓資料依索引鍵順序實體存放，每表只能有一個。A 錯；B 錯（Non-Clustered 葉節點含索引鍵 + 書籤指向資料列，非完整資料列）；D 錯（PRIMARY KEY 預設建立 Clustered Index）。"
+        },
+        {
+          "id": 10,
+          "type": "multiple-choice",
+          "question": "以下哪個 WHERE 條件可以有效利用 Email 欄位上的 Non-Clustered Index（即 SARGable 條件）？",
+          "options": [
+            "A. WHERE UPPER(Email) = 'TEST@TEST.COM'",
+            "B. WHERE Email LIKE '%test%'",
+            "C. WHERE Email = 'test@test.com'",
+            "D. WHERE LEN(Email) > 10"
+          ],
+          "answer": "C",
+          "explanation": "SARGable（Search ARGument able）條件是指可以直接利用索引的條件：等值比較、範圍比較（>/</>=/<=）、後置 LIKE（'test%'）。A 和 D 對欄位套用函數破壞 SARGability；B 前置 % 無法用 B-Tree 索引；C 直接等值比較可用 Index Seek。"
+        }
+      ]
+    },
+    {
+      "id": "normalization",
+      "title": "正規化（1NF / 2NF / 3NF）",
+      "content": "正規化（Normalization）是設計關聯式資料庫的過程，目的是消除資料重複、避免更新異常。\n\n## 第一正規形式（1NF）\n\n**規則**：每個欄位只能有**原子值**（不可再分割）；不允許重複群組或多值欄位。\n\n**違反範例**：\n\n| OrderId | CustomerName | Products |\n|---------|-------------|----------|\n| 1 | 王小明 | 手機, 耳機 |\n\n**修正**：一個商品一列，或拆出 OrderDetails 資料表。\n\n## 第二正規形式（2NF）\n\n**規則**：符合 1NF，且所有非主鍵欄位必須**完全依賴**整個主鍵（消除部分相依）。\n\n> 只有在**複合主鍵**時才會違反 2NF。\n\n**違反範例**（主鍵為 OrderId + ProductId）：\n\n| OrderId | ProductId | Qty | ProductName | CustomerName |\n|---------|-----------|-----|-------------|-------------|\n\n- `Qty` 完全依賴 (OrderId, ProductId) ✅\n- `ProductName` 只依賴 `ProductId`（部分相依）❌\n- `CustomerName` 只依賴 `OrderId`（部分相依）❌\n\n**修正**：拆出 Products(ProductId, ProductName) 和 Orders(OrderId, CustomerName)。\n\n## 第三正規形式（3NF）\n\n**規則**：符合 2NF，且非主鍵欄位之間不可有**遞移相依**（Transitive Dependency）。\n\n> A → B → C，若 C 依賴 B，B 依賴主鍵 A，則 C 對主鍵有遞移相依。\n\n**違反範例**（主鍵為 EmployeeId）：\n\n| EmployeeId | Name | DeptId | DeptName | DeptLocation |\n|------------|------|--------|----------|--------------|\n\n- `DeptId` 依賴 `EmployeeId` ✅\n- `DeptName` 依賴 `DeptId`，不直接依賴 `EmployeeId`（遞移相依）❌\n\n**修正**：拆出 Departments(DeptId, DeptName, DeptLocation)。\n\n## 正規化等級整理\n\n| 等級 | 消除的問題 | 關鍵詞 |\n|------|-----------|--------|\n| 1NF | 多值欄位、重複群組 | 原子值 |\n| 2NF | 部分相依（非主鍵欄位只依賴部分複合主鍵） | 完全相依 |\n| 3NF | 遞移相依（非主鍵欄位依賴另一非主鍵欄位） | 直接相依 |\n\n## 反正規化（Denormalization）\n\n刻意引入冗餘以提升讀取效能（犧牲寫入複雜度換取查詢速度），常見於報表資料庫、OLAP。\n\n## 異常類型\n\n- **插入異常**：新增資料時必須填入不相關資料\n- **刪除異常**：刪除某資料時連帶刪除其他有用資料\n- **更新異常**：同一事實存在多處，更新時遺漏導致不一致",
+      "codeExample": "-- 違反 3NF 的設計（遞移相依）\nCREATE TABLE Employees_Denorm (\n    EmployeeId  INT PRIMARY KEY,\n    Name        NVARCHAR(50),\n    DeptId      INT,\n    DeptName    NVARCHAR(50),   -- 遞移相依：依賴 DeptId 而非 EmployeeId\n    DeptLocation NVARCHAR(100)  -- 遞移相依：依賴 DeptId\n);\n\n-- 修正為 3NF：拆成兩張表\nCREATE TABLE Departments (\n    DeptId       INT PRIMARY KEY,\n    DeptName     NVARCHAR(50)    NOT NULL,\n    DeptLocation NVARCHAR(100)\n);\n\nCREATE TABLE Employees (\n    EmployeeId INT PRIMARY KEY,\n    Name       NVARCHAR(50) NOT NULL,\n    DeptId     INT          NOT NULL,\n    FOREIGN KEY (DeptId) REFERENCES Departments(DeptId)\n);\n\n-- 查詢時用 JOIN 取回部門資訊（正規化後）\nSELECT e.Name, d.DeptName, d.DeptLocation\nFROM Employees e\nINNER JOIN Departments d ON e.DeptId = d.DeptId;",
+      "keyPoints": [
+        "1NF：欄位原子值，不可多值；消除重複群組",
+        "2NF：消除部分相依（僅複合主鍵才有此問題）",
+        "3NF：消除遞移相依（非主鍵→非主鍵→主鍵）",
+        "更新異常/插入異常/刪除異常是未正規化的三大問題",
+        "反正規化（冗餘）用於報表/OLAP，以讀取效能換寫入複雜度"
+      ],
+      "exercises": [
+        {
+          "id": 1,
+          "type": "coding",
+          "question": "以下資料表設計違反 1NF，請改寫為符合 1NF 的設計：\n\n```\nOrders(OrderId PK, CustomerName, PhoneNumbers)\nPhoneNumbers 欄位範例值：'0912-111-222, 0933-333-444'\n```",
+          "answer": "-- 方法一：拆出獨立資料表（推薦）\nCREATE TABLE Orders (\n    OrderId      INT PRIMARY KEY,\n    CustomerName NVARCHAR(50) NOT NULL\n);\n\nCREATE TABLE CustomerPhones (\n    PhoneId   INT PRIMARY KEY IDENTITY,\n    OrderId   INT NOT NULL,\n    PhoneNumber NVARCHAR(20) NOT NULL,\n    FOREIGN KEY (OrderId) REFERENCES Orders(OrderId)\n);\n\n-- 方法二：若確定最多兩支電話，可拆成兩欄（但擴充性差）\n-- Phone1 NVARCHAR(20), Phone2 NVARCHAR(20)",
+          "explanation": "1NF 要求每欄位只存一個原子值。多個電話號碼存在同一欄違反 1NF。正確做法是拆出獨立的 CustomerPhones 資料表，每支電話一列。"
+        },
+        {
+          "id": 2,
+          "type": "coding",
+          "question": "以下資料表設計違反 2NF，請將其分解為符合 2NF 的資料表設計（主鍵為 OrderId + ProductId）：\n\n```\nOrderDetails(OrderId PK, ProductId PK, Qty, UnitPrice, ProductName, CustomerName)\n```",
+          "answer": "-- 分解為三張表\nCREATE TABLE Customers (\n    CustomerId   INT PRIMARY KEY,\n    CustomerName NVARCHAR(50) NOT NULL\n);\n\nCREATE TABLE Orders (\n    OrderId    INT PRIMARY KEY,\n    CustomerId INT NOT NULL,\n    FOREIGN KEY (CustomerId) REFERENCES Customers(CustomerId)\n);\n\nCREATE TABLE Products (\n    ProductId   INT PRIMARY KEY,\n    ProductName NVARCHAR(100) NOT NULL,\n    UnitPrice   DECIMAL(10,2) NOT NULL\n);\n\nCREATE TABLE OrderDetails (\n    OrderId   INT,\n    ProductId INT,\n    Qty       INT NOT NULL,\n    PRIMARY KEY (OrderId, ProductId),\n    FOREIGN KEY (OrderId)   REFERENCES Orders(OrderId),\n    FOREIGN KEY (ProductId) REFERENCES Products(ProductId)\n);",
+          "explanation": "原表中：Qty 完全依賴 (OrderId, ProductId) ✅；ProductName/UnitPrice 只依賴 ProductId（部分相依）❌；CustomerName 只依賴 OrderId（部分相依）❌。分解後各欄位都完全依賴所屬表的主鍵。"
+        },
+        {
+          "id": 3,
+          "type": "coding",
+          "question": "以下資料表設計違反 3NF，請將其分解為符合 3NF 的設計（主鍵為 EmpId）：\n\n```\nEmployees(EmpId PK, Name, DeptId, DeptName, DeptManagerName)\n```",
+          "answer": "CREATE TABLE Departments (\n    DeptId          INT PRIMARY KEY,\n    DeptName        NVARCHAR(50)  NOT NULL,\n    DeptManagerName NVARCHAR(50)\n);\n\nCREATE TABLE Employees (\n    EmpId  INT PRIMARY KEY,\n    Name   NVARCHAR(50) NOT NULL,\n    DeptId INT NOT NULL,\n    FOREIGN KEY (DeptId) REFERENCES Departments(DeptId)\n);",
+          "explanation": "遞移相依：EmpId → DeptId → DeptName、EmpId → DeptId → DeptManagerName。DeptName 和 DeptManagerName 不直接依賴主鍵 EmpId，而是透過 DeptId 間接依賴，違反 3NF。拆出 Departments 表後，每個欄位都直接依賴所在表的主鍵。"
+        },
+        {
+          "id": 4,
+          "type": "coding",
+          "question": "設計一個符合 3NF 的訂單系統資料表結構，包含：客戶（有姓名、城市）、訂單（有訂單日期、狀態）、商品（有商品名稱、單價）、訂單明細（含數量）。請寫出四張表的 CREATE TABLE 語句。",
+          "answer": "CREATE TABLE Customers (\n    CustomerId INT          PRIMARY KEY IDENTITY,\n    Name       NVARCHAR(50) NOT NULL,\n    City       NVARCHAR(50)\n);\n\nCREATE TABLE Products (\n    ProductId   INT            PRIMARY KEY IDENTITY,\n    ProductName NVARCHAR(100)  NOT NULL,\n    UnitPrice   DECIMAL(10,2)  NOT NULL\n);\n\nCREATE TABLE Orders (\n    OrderId    INT         PRIMARY KEY IDENTITY,\n    CustomerId INT         NOT NULL,\n    OrderDate  DATE        NOT NULL DEFAULT GETDATE(),\n    Status     NVARCHAR(20) NOT NULL DEFAULT N'待處理',\n    FOREIGN KEY (CustomerId) REFERENCES Customers(CustomerId)\n);\n\nCREATE TABLE OrderDetails (\n    OrderDetailId INT            PRIMARY KEY IDENTITY,\n    OrderId       INT            NOT NULL,\n    ProductId     INT            NOT NULL,\n    Qty           INT            NOT NULL CHECK (Qty > 0),\n    FOREIGN KEY (OrderId)   REFERENCES Orders(OrderId),\n    FOREIGN KEY (ProductId) REFERENCES Products(ProductId)\n);",
+          "explanation": "符合 3NF 的設計：每個非主鍵欄位只依賴本表主鍵，沒有部分相依或遞移相依。UnitPrice 存在 Products 而非 OrderDetails（避免更新異常）；City 存在 Customers 而非 Orders。"
+        },
+        {
+          "id": 5,
+          "type": "coding",
+          "question": "說明「更新異常（Update Anomaly）」並舉例。假設有以下未正規化資料表，請寫出可能的更新異常情境並說明如何修正：\n\n```\nOrders(OrderId, CustomerName, CustomerCity, ProductName, Qty)\n```",
+          "answer": "-- 更新異常說明：\n-- 若客戶「王小明」搬家，City 從「台北」改為「台中」，\n-- 則必須更新 Orders 表中所有王小明的列，\n-- 若有一列漏更新就造成資料不一致。\n\n-- 修正：正規化為 3NF\nCREATE TABLE Customers (\n    CustomerId   INT PRIMARY KEY IDENTITY,\n    CustomerName NVARCHAR(50) NOT NULL,\n    CustomerCity NVARCHAR(50)\n);\n\nCREATE TABLE Products (\n    ProductId   INT PRIMARY KEY IDENTITY,\n    ProductName NVARCHAR(100) NOT NULL\n);\n\nCREATE TABLE Orders (\n    OrderId    INT PRIMARY KEY IDENTITY,\n    CustomerId INT NOT NULL,\n    ProductId  INT NOT NULL,\n    Qty        INT NOT NULL,\n    FOREIGN KEY (CustomerId) REFERENCES Customers(CustomerId),\n    FOREIGN KEY (ProductId)  REFERENCES Products(ProductId)\n);\n\n-- 修正後：更改王小明的城市只需更新 Customers 一列，不會有遺漏",
+          "explanation": "更新異常：同一事實（客戶城市）重複出現在多列，更新時必須更新所有列，若有遺漏則產生不一致。正規化後，每個事實只存一處，更新一列即全部一致。"
+        },
+        {
+          "id": 6,
+          "type": "coding",
+          "question": "以下是一個違反 2NF 的資料表，請判斷哪些欄位有部分相依，並寫出分解後符合 2NF 的設計（主鍵為 StudentId + CourseId）：\n\n```\nEnrollments(StudentId PK, CourseId PK, Grade, StudentName, StudentEmail, CourseName, Credits)\n```",
+          "answer": "-- 部分相依分析：\n-- Grade: 依賴 (StudentId, CourseId) ✅ 完全相依\n-- StudentName, StudentEmail: 只依賴 StudentId ❌ 部分相依\n-- CourseName, Credits: 只依賴 CourseId ❌ 部分相依\n\n-- 分解為 3 張表\nCREATE TABLE Students (\n    StudentId    INT          PRIMARY KEY,\n    StudentName  NVARCHAR(50) NOT NULL,\n    StudentEmail NVARCHAR(100)\n);\n\nCREATE TABLE Courses (\n    CourseId   INT          PRIMARY KEY,\n    CourseName NVARCHAR(100) NOT NULL,\n    Credits    INT           NOT NULL\n);\n\nCREATE TABLE Enrollments (\n    StudentId INT,\n    CourseId  INT,\n    Grade     DECIMAL(4,1),\n    PRIMARY KEY (StudentId, CourseId),\n    FOREIGN KEY (StudentId) REFERENCES Students(StudentId),\n    FOREIGN KEY (CourseId)  REFERENCES Courses(CourseId)\n);",
+          "explanation": "2NF 要求：在複合主鍵的情況下，非主鍵欄位必須依賴「整個」主鍵。StudentName 只依賴 StudentId（部分依賴），CourseName 只依賴 CourseId（部分依賴），都違反 2NF。"
+        },
+        {
+          "id": 7,
+          "type": "debugging",
+          "question": "以下資料表設計被說「有問題」，請指出違反哪一正規形式，說明原因，並提出修正方案：\n\n```sql\nCREATE TABLE StudentCourses (\n    StudentId   INT,\n    StudentName NVARCHAR(50),\n    Courses     NVARCHAR(500),  -- 值範例：'數學,英文,資料庫'\n    PRIMARY KEY (StudentId)\n);\n```",
+          "buggyCode": "CREATE TABLE StudentCourses (\n    StudentId   INT,\n    StudentName NVARCHAR(50),\n    Courses     NVARCHAR(500),\n    PRIMARY KEY (StudentId)\n);",
+          "answer": "-- 問題：違反 1NF\n-- Courses 欄位儲存多個值（'數學,英文,資料庫'），不是原子值。\n\n-- 修正：拆成多對多關聯\nCREATE TABLE Students (\n    StudentId   INT          PRIMARY KEY,\n    StudentName NVARCHAR(50) NOT NULL\n);\n\nCREATE TABLE Courses (\n    CourseId   INT          PRIMARY KEY,\n    CourseName NVARCHAR(50) NOT NULL\n);\n\nCREATE TABLE StudentCourses (\n    StudentId INT,\n    CourseId  INT,\n    PRIMARY KEY (StudentId, CourseId),\n    FOREIGN KEY (StudentId) REFERENCES Students(StudentId),\n    FOREIGN KEY (CourseId)  REFERENCES Courses(CourseId)\n);",
+          "explanation": "Courses 欄位儲存以逗號分隔的多個課程名稱，違反 1NF 的「原子值」要求。修正方式是建立多對多關聯表（StudentCourses）讓每列只代表一個學生選一門課。"
+        },
+        {
+          "id": 8,
+          "type": "debugging",
+          "question": "DBA 說以下資料表符合 2NF 但違反 3NF，請找出遞移相依並說明修正方式：\n\n```sql\nCREATE TABLE Orders (\n    OrderId      INT PRIMARY KEY,\n    CustomerId   INT,\n    CustomerName NVARCHAR(50),\n    CustomerCity NVARCHAR(50),\n    ZipCode      CHAR(5),\n    CityFromZip  NVARCHAR(50)   -- 可由 ZipCode 推導出來\n);\n```",
+          "buggyCode": "CREATE TABLE Orders (\n    OrderId      INT PRIMARY KEY,\n    CustomerId   INT,\n    CustomerName NVARCHAR(50),\n    CustomerCity NVARCHAR(50),\n    ZipCode      CHAR(5),\n    CityFromZip  NVARCHAR(50)\n);",
+          "answer": "-- 遞移相依：\n-- OrderId → ZipCode → CityFromZip\n-- CityFromZip 依賴 ZipCode（非主鍵），而非直接依賴 OrderId，違反 3NF。\n\n-- 修正：拆出 ZipCodes 參照表\nCREATE TABLE ZipCodes (\n    ZipCode CHAR(5)      PRIMARY KEY,\n    City    NVARCHAR(50) NOT NULL\n);\n\nCREATE TABLE Customers (\n    CustomerId INT          PRIMARY KEY,\n    Name       NVARCHAR(50) NOT NULL,\n    ZipCode    CHAR(5),\n    FOREIGN KEY (ZipCode) REFERENCES ZipCodes(ZipCode)\n);\n\nCREATE TABLE Orders (\n    OrderId    INT PRIMARY KEY,\n    CustomerId INT NOT NULL,\n    FOREIGN KEY (CustomerId) REFERENCES Customers(CustomerId)\n);",
+          "explanation": "遞移相依：OrderId → ZipCode → CityFromZip，即城市可由郵遞區號推導，ZipCode 決定 CityFromZip，而非主鍵 OrderId 直接決定 CityFromZip。拆出 ZipCodes 參照表消除遞移相依，符合 3NF。"
+        },
+        {
+          "id": 9,
+          "type": "multiple-choice",
+          "question": "下列哪個情況違反第二正規形式（2NF）？",
+          "options": [
+            "A. 資料表只有單一欄位主鍵，某欄位依賴另一個非主鍵欄位",
+            "B. 資料表有複合主鍵，某非主鍵欄位只依賴部分主鍵欄位",
+            "C. 資料表某欄位儲存多個以逗號分隔的值",
+            "D. 資料表有兩個非主鍵欄位互相依賴"
+          ],
+          "answer": "B",
+          "explanation": "2NF 違反必須在複合主鍵情況下發生：非主鍵欄位只依賴部分主鍵（部分相依）。A 和 D 描述的是遞移相依（違反 3NF）；C 描述的是多值欄位（違反 1NF）；B 正確描述 2NF 違反。"
+        },
+        {
+          "id": 10,
+          "type": "multiple-choice",
+          "question": "正規化的主要目的是什麼？以下何者最完整？",
+          "options": [
+            "A. 提升資料庫的查詢效能，減少 JOIN 次數",
+            "B. 消除資料重複與更新/插入/刪除異常，維護資料一致性",
+            "C. 減少資料表數量，讓結構更簡單",
+            "D. 強制所有資料表都必須使用整數主鍵"
+          ],
+          "answer": "B",
+          "explanation": "正規化的核心目的是消除冗餘資料，避免三種異常：更新異常（同一事實多處不一致）、插入異常（新增資料被迫填入無關欄位）、刪除異常（刪除資料連帶刪除其他有用資料）。A 相反（正規化通常增加 JOIN）；C 相反（正規化通常增加表數）；D 完全無關。"
+        }
+      ]
+    }
+  ]
+}
